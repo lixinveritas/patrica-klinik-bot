@@ -18,6 +18,7 @@ client.once(Events.ClientReady,async()=>{
   assert.equal(records.permissionsFor(s.resource(guild.id,'role:psychologist')!)?.has(P.ViewChannel),true);
   assert.equal(records.permissionsFor(s.resource(guild.id,'role:manager')!)?.has(P.ManageThreads),true);
   const welcome=await textChannel(guild,s,'welcome');assert.equal(welcome.permissionsFor(guild.roles.everyone)?.has(P.ViewChannel),true);assert.equal(welcome.permissionsFor(guild.roles.everyone)?.has(P.SendMessages),false);
+  const apply=await textChannel(guild,s,'apply');assert.equal(apply.permissionsFor(client.user!.id)?.has(P.CreatePrivateThreads),true);assert.equal(apply.permissionsFor(guild.roles.everyone)?.has(P.SendMessagesInThreads),true);
   const emojis=await guild.emojis.fetch();let icons=0;
   for(const name of ['folder','calendar','notes','receipt','clock']){assert.ok(emojis.has(s.resource(guild.id,`emoji:${name}`)!));icons++;}
   let panels=0;

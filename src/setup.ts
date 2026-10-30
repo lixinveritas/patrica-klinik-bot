@@ -63,7 +63,7 @@ export async function setup(guild:Guild,s:Store,actor:Actor) {
     ['records','clinic','danisan-dosyalari'],
     ['finance','finance','finans-masasi'],['cash','finance','tahsilat-kayitlari']
   ] as const) {
-    const perms=parent==='entry'?[{id:guild.id,allow:[P.ViewChannel,P.ReadMessageHistory,...(key==='apply'?[P.SendMessagesInThreads]:[])],deny:[P.SendMessages]} as OverwriteResolvable,{id:me.id,allow:[P.ViewChannel,P.SendMessages,P.ManageChannels,P.ManageThreads]} as OverwriteResolvable]:overwrites(guild,s,parent==='staff'?['staff']:parent==='finance'||key==='applications'?['finance']:parent==='clinic'?['psychologist']:[],undefined,key==='announcements'||key==='people');
+    const perms=parent==='entry'?[{id:guild.id,allow:[P.ViewChannel,P.ReadMessageHistory,...(key==='apply'?[P.SendMessagesInThreads]:[])],deny:[P.SendMessages]} as OverwriteResolvable,{id:me.id,allow:[P.ViewChannel,P.SendMessages,P.SendMessagesInThreads,P.ManageChannels,P.ManageThreads,...(key==='apply'?[P.CreatePrivateThreads]:[])]} as OverwriteResolvable]:overwrites(guild,s,parent==='staff'?['staff']:parent==='finance'||key==='applications'?['finance']:parent==='clinic'?['psychologist']:[],undefined,key==='announcements'||key==='people');
     const saved=s.resource(guild.id,`channel:${key}`);
     if(saved){const c=await textChannel(guild,s,key);await c.permissionOverwrites.set(perms);if(key==='applications'&&c.name!==name)await c.setName(name);continue;}
     if(guild.channels.cache.some(c=>c?.parentId===categories[parent]&&c.name===name))throw new UserError(`${name} eslesmeyen kanal var; yinelenmedi.`);
