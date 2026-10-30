@@ -2,6 +2,48 @@
 
 ## Gunluk kullanim
 
+### Kisisel personel dosyasi
+
+Personel kabul edildiginde veya gorev atandiginda `personel-dosyalari` altinda
+yalniz ilgili kisi ve yonetimin gorebildigi bir ozel alt kanal acilir. Mevcut
+personel bot acilisinda da eslestirilir. Calisma Masasi > **Personel Dosyam**
+veya `/klinik personelim` ile ulasilir.
+
+Her Istanbul gunu icin tek bir gorselli kart tutulur. Seans/randevu sayisi,
+atanmis aktif dosya, kayitli mesai ve bekleyen finans sayisi kayitlardan gelir;
+gorusme notu gorunmez. Seans ve dosya kodlari kartin metnindedir. Mesai bot
+kaydidir, oyun AFK veya gercek calisma suresi olcumu degildir. Veri degisince
+ve en gec yaklasik bes dakikada yenileme kuyruga alinir.
+
+- **Mazeret Bildir:** gelinemeyen ilk/son gun ve neden. Bir mazeret en fazla
+  31 gunu kapsar. Ayni tarihe ust uste bildirim acilmaz. Yonetim gerekceyle
+  uygun gorur veya reddeder; randevular kendiliginden iptal edilmez.
+- **Devir Notu:** bekleyen is, sonraki adim ve ilgili PK/RD/FIN kodlari.
+- **Personel Kayitlarim:** kendi IK kayitlarinin sayfali listesi.
+- Yonetimde **personel-kayitlari > Tutanak Ac:** kisi, olay tarihi, gozlem ve
+  ilgili kayit. Personel kendi kartindaki **Aciklama Ekle** ile cevap verebilir.
+- Asil tutanak/aciklama degistirilmez veya silinmez. Yonetim karari gerekceyle
+  kaydedilir. Otomatik ceza, maas kesintisi veya "gelmedi" tespiti yoktur.
+- `/klinik personel-kaydi kod:IK-0001` detay verir; sadece ilgili kisi ve yonetim.
+
+Personelden ayrilinca alt kanal uyeligi kaldirilir ve alan arsivlenir. Ana
+kanalin personel rol kapisi, bot kapaliyken rol kaldirildiginda da erisimi keser.
+Discord yoneticileri/sunucu sahibi bu sinirin disindadir.
+
+### Personel bildirimini kurtarma
+
+`/klinik personel-kurtar` yalniz yonetime aciktir. Tur olarak ozel kanal,
+bugunun karti veya yonetim/personel IK karti secilir. Hedef Discord ID si ya da
+IK kodudur. Var olan kanal/mesaj ID sini **kimlik** alanina yaz. Mesaj bu botun
+olmali ve tam kayit koduyla eslesmelidir. Hic olusmadigi aktif/arsiv gecmisinde
+dogrulandiysa **yoklugunu-dogruladim:true** ile tekrar kuyruga alinabilir.
+Bu onay verilmeden belirsiz gonderim otomatik yeniden atilmaz.
+
+Gorseller Sharp ile duzenlenir. Manrope/Newsreader yerel SIL OFL fontlaridir;
+kartta AI gorseli, varsayilan emoji veya hazir stok gorsel kullanilmaz. Font
+kaynaklari ve lisanslari `assets/fonts/` altindadir. `npm run preview:personnel`
+yalniz yerel sentetik onizleme uretir; Discord'a veya canli personele kayit yazmaz.
+
 `calisma-masasi` personelin ana panelidir: dosya, randevu, seans, tahsilat,
 mesai ve listeler. `roadmap` her kanalin ne ise yaradigini anlatir.
 

@@ -12,7 +12,7 @@ export function inspectBackup(path:string) {
     const existing=new Set(db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(r=>String(r.name)));
     if(existing.has('cash_evidence')&&Number(db.prepare('SELECT COUNT(*) n FROM cash_evidence WHERE length(data)=0 OR length(data)>4194304').get()?.n))throw new Error('Yedek kanit verisi gecersiz.');
     const tables=['cases','visits','cash','ledger','resources','appointments','applications','shifts','audit'];
-    const optional=['cash_evidence','outbox','tariffs','reconciliations','custody'];
+    const optional=['cash_evidence','outbox','tariffs','reconciliations','custody','staff_reports','staff_statements'];
     return Object.fromEntries([...tables,...optional].map(table=>[table,optional.includes(table)&&!existing.has(table)?0:Number(db.prepare(`SELECT COUNT(*) n FROM ${table}`).get()?.n)]));
   } finally {db.close();}
 }

@@ -15,6 +15,7 @@ Bu kanal personelin kullanim rehberi. Kod ezberlemene gerek yok; islemlerin cogu
 6. Oyun ici odeme alindiginda **Tahsilat Bildir** kullanilir; seans kodu ve kanit dosyasi eklenir.
 7. Finans yetkilisi odemeyi kontrol edip onaylar. Onaydan once para bot kasasina eklenmez.
 8. Isin bittiginde **Mesai Kapat** butonuna bas.
+9. **Personel Dosyam** ile kendi ozel alanina gec. Gunluk kartin, mazeret ve devir notun burada. Baska personelin dosyasina giremezsin.
 
 **Kodlar ne demek?**
 PK-0001 = danisan dosyasi.
@@ -22,6 +23,7 @@ SN-0001 = tek bir gorusme/seans.
 RD-0001 = randevu.
 FIN-0001 = para bildirimi.
 BAS-0001 = personel basvurusu.
+IK-0001 = mazeret, devir notu veya personel tutanagi.
 Bir kodu digerinin yerine yazma.`,
 `# Ortak Kanallar
 **${ch('welcome','hos-geldiniz')}**
@@ -126,6 +128,8 @@ Yonetim **/klinik devret** ile dosyayi baska psikologa verir. Gelecekteki randev
 /klinik uzlastir: gozlenen oyun bakiyesini defterle karsilastir; defteri degistirmez.
 /klinik teslim: onayli gelir gercekten kasaya gelince finans kaydeder.
 /klinik saglik: yonetim bekleyen/engellenen bildirimleri kontrol eder.
+
+**Personel alani:** Calisma Masasi > Personel Dosyam. Gunluk seans ve dosya kodlari burada; gorusme notu ortak ozete cikmaz. Mazeret Bildir ile gelemeyecegin tarihleri ve nedeni gir. Devir Notu ile bekleyen isi kaydet. IK kaydini /klinik personel-kaydi ile oku. Tutanak geldiyse Aciklama Ekle butonunu kullan. Otomatik ceza uygulanmaz.
 
 Kullanim sorusunu ${ch('chat','personel-iletisim')} kanalina, yanlis kayit/sikayeti yonetime ilet. Yalniz ilgili kodu paylas; tum danisan dosyasini ortak kanala atma.`
   ];

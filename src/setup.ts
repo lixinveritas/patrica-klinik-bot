@@ -2,7 +2,7 @@ import { ChannelType, Guild, OverwriteResolvable, PermissionFlagsBits as P, Text
 import { readFile } from 'node:fs/promises';
 import { Store } from './store.js';
 import { Actor, UserError } from './domain.js';
-import { applicationPanel, financePanel, staffPanel, card } from './ui.js';
+import { applicationPanel, financePanel, staffPanel, card, buttons, panelVisual } from './ui.js';
 import { roadmapMessages } from './roadmap.js';
 
 export const roles = {manager:'Patrica | Yonetim',finance:'Patrica | Finans',psychologist:'Patrica | Psikolog',reception:'Patrica | Resepsiyon',staff:'Patrica | Personel',candidate:'Patrica | Aday'};
@@ -58,11 +58,12 @@ export async function setup(guild:Guild,s:Store,actor:Actor) {
   for(const [key,parent,name] of [
     ['welcome','entry','hos-geldiniz'],['rules','entry','kurallar'],['apply','entry','personel-basvurusu'],
     ['announcements','staff','kurum-duyurulari'],['staff','staff','calisma-masasi'],['chat','staff','personel-iletisim'],['appointments','staff','randevu-takvimi'],['shifts','staff','mesai-ve-devir'],
+    ['people','staff','personel-dosyalari'],['personnel','management','personel-kayitlari'],
     ['applications','management','basvuru-degerlendirme'],['audit','management','islem-gecmisi'],['complaints','management','olay-ve-sikayet'],['index','management','dosya-indeksi'],
     ['records','clinic','danisan-dosyalari'],
     ['finance','finance','finans-masasi'],['cash','finance','tahsilat-kayitlari']
   ] as const) {
-    const perms=parent==='entry'?[{id:guild.id,allow:[P.ViewChannel,P.ReadMessageHistory],deny:[P.SendMessages]} as OverwriteResolvable,{id:me.id,allow:[P.ViewChannel,P.SendMessages,P.ManageChannels]} as OverwriteResolvable]:overwrites(guild,s,parent==='staff'?['staff']:parent==='finance'?['finance']:parent==='clinic'?['psychologist']:[],undefined,key==='announcements');
+    const perms=parent==='entry'?[{id:guild.id,allow:[P.ViewChannel,P.ReadMessageHistory],deny:[P.SendMessages]} as OverwriteResolvable,{id:me.id,allow:[P.ViewChannel,P.SendMessages,P.ManageChannels]} as OverwriteResolvable]:overwrites(guild,s,parent==='staff'?['staff']:parent==='finance'?['finance']:parent==='clinic'?['psychologist']:[],undefined,key==='announcements'||key==='people');
     const saved=s.resource(guild.id,`channel:${key}`);
     if(saved){const c=await textChannel(guild,s,key);await c.permissionOverwrites.set(perms);continue;}
     if(guild.channels.cache.some(c=>c?.parentId===categories[parent]&&c.name===name))throw new UserError(`${name} eslesmeyen kanal var; yinelenmedi.`);
@@ -84,6 +85,7 @@ export async function setup(guild:Guild,s:Store,actor:Actor) {
   await publishPanel(guild,s,'apply',applicationPanel(s,guild.id));
   await publishPanel(guild,s,'staff',staffPanel(s,guild.id));
   await publishPanel(guild,s,'finance',financePanel(s,guild.id));
+  await publishPanel(guild,s,'personnel',{...panelVisual('personnel',card('Personel Isleri','Mazeretleri ve devir notlarini degerlendir. Tutanakta personelin aciklamasini ve karar gerekcesini kaydet. Otomatik ceza veya maas kesintisi yapilmaz.')),components:buttons(s,guild.id,[['hr:incident','Tutanak Ac'],['hr:pending:0','Bekleyen Kayitlar'],['hr:areas','Personel Alanlari']])});
   await publishPanel(guild,s,'welcome',{embeds:[card('Patrica Klinik','Hos geldin. Personel basvurusunu ilgili kanaldaki butondan gonderebilirsin. Onaylanana kadar personel ve klinik kayitlari kapali kalir.')]});
   await publishPanel(guild,s,'rules',{embeds:[card('Calisma Esaslari','Yalniz kurgu karakter bilgisi kaydet. IC ve OOC bilgiyi ayir. Danisan notlarini dosyasi disinda paylasma. Tahsilat bildirimini oyun ici hareketle eslestirmeden onaylama. Kendi finans kaydini onaylayamazsin.\n\nGuncel tarife: /klinik tarifeler. Seans kaydedildigi andaki tutar korunur.')]});
   await publishRoadmap(guild,s);
@@ -111,6 +113,6 @@ export async function publishRoadmap(guild:Guild,s:Store) {
 }
 export async function publishPanel(guild:Guild,s:Store,key:string,payload:ReturnType<typeof applicationPanel>|{embeds:ReturnType<typeof card>[]}) {
   const channel=await textChannel(guild,s,key);const old=s.resource(guild.id,`panel:${key}`);
-  if(old) {const message=await fetchExistingMessage(channel,old);if(message){await message.edit(payload);return;}}
+  if(old) {const message=await fetchExistingMessage(channel,old);if(message){await message.edit({...payload,attachments:[]});return;}}
   const message=await channel.send({...payload,allowedMentions:{parse:[]}});s.setResource(guild.id,`panel:${key}`,message.id);
 }

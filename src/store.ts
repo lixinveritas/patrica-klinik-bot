@@ -64,6 +64,10 @@ export class Store {
     const kind=action.split('.')[0]!;
     if(['case','visit','application','cash','appointment','shift'].includes(kind))this.enqueue(a.guild,kind,target);
     if(kind==='case')this.enqueue(a.guild,'index','all');
+    if(kind==='shift')this.enqueue(a.guild,'workspace',target);
+    const table=({case:'cases',visit:'visits',cash:'cash',appointment:'appointments'} as Record<string,string>)[kind];
+    const field=kind==='case'?'owner':kind==='cash'?'maker':'staff';
+    if(table){const row=this.get<{user:string}>(`SELECT ${field} user FROM ${table} WHERE guild=? AND id=?`,a.guild,target);if(row)this.enqueue(a.guild,'workspace',row.user);}
   }
   enqueue(guild:string,kind:string,target:string) {
     this.run(`INSERT INTO outbox(guild,kind,target) VALUES(?,?,?) ON CONFLICT(guild,kind,target) DO UPDATE SET version=version+1,state=CASE WHEN state='running' THEN state ELSE 'pending' END,attempts=0,due=0,error=NULL`,guild,kind,target);

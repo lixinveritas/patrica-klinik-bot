@@ -7,11 +7,13 @@ import { RoleKey, overwrites, roles, setup, textChannel } from './setup.js';
 import { buttons, card, forms, modal } from './ui.js';
 import { deliver, auditBatches, recordHtml, DeliveryUncertain } from './delivery.js';
 import { downloadEvidence } from './evidence.js';
+import {Personnel} from './personnel.js';
 
 type Supported=ChatInputCommandInteraction;
 export class ClinicBot {
   private busy=new Set<string>();
-  constructor(readonly client:Client,readonly store:Store,readonly cfg:Config) {}
+  readonly personnel:Personnel;
+  constructor(readonly client:Client,readonly store:Store,readonly cfg:Config) {this.personnel=new Personnel(this);}
   cachedActor(i:RepliableInteraction):Actor {
     const member=i.member;const ids=member?(Array.isArray(member.roles)?member.roles:[...member.roles.cache.keys()]):[];
     const jobs:Job[]=this.cfg.owners.includes(i.user.id)?['manager']:[];
@@ -60,7 +62,9 @@ export class ClinicBot {
       const job=this.store.claim(guild.id);if(!job)break;
       try {
         const system:Actor={id:'system',guild:guild.id,jobs:['manager']};const id=Number(job.target);
-        if(job.kind==='staff')await this.exclusive(`member:${job.target}`,async()=>{
+        if(job.kind==='workspace')await this.personnel.refresh(guild,job.target);
+        else if(job.kind==='report')await this.personnel.publish(guild,id);
+        else if(job.kind==='staff')await this.exclusive(`member:${job.target}`,async()=>{
           const desired=this.store.resource(guild.id,`staffdesired:${job.target}`);
           if(desired&&[...Object.keys(roles),'offboard'].includes(desired))await this.syncMember(guild,job.target,desired as RoleKey|'offboard');
         });
@@ -106,6 +110,7 @@ export class ClinicBot {
   async onJoin(member:GuildMember) {
     if(member.guild.id!==this.cfg.guild||member.user.bot)return;
     await this.revokeCaseAccess(member.guild,member.id);
+    await this.personnel.revoke(member.guild,member.id);
     const role=this.store.resource(member.guild.id,'role:candidate');if(role)await member.roles.add(role,'Patrica baslangic');
   }
   async syncMember(guild:Guild,user:string,job:RoleKey|'offboard') {
@@ -114,6 +119,7 @@ export class ClinicBot {
     if(this.cfg.owners.includes(user))throw new UserError('Bot sahibi bu panelden degistirilemez.');
     const all=Object.keys(roles).map(k=>this.store.resource(guild.id,`role:${k}`)).filter((x):x is string=>!!x);
     if(job!=='psychologist'&&job!=='manager')await this.revokeCaseAccess(guild,user);
+    if(job==='offboard')await this.personnel.revoke(guild,user);
     await member.roles.remove(all,'Patrica gorev guncelleme');
     if(job!=='offboard') {
       const selected=this.store.resource(guild.id,`role:${job}`);const staff=this.store.resource(guild.id,'role:staff');
@@ -123,6 +129,7 @@ export class ClinicBot {
       const candidate=this.store.resource(guild.id,'role:candidate');if(candidate)await member.roles.add(candidate);
       this.store.run('UPDATE shifts SET ends=? WHERE guild=? AND staff=? AND ends IS NULL',Date.now(),guild.id,user);
     }
+    this.personnel.schedule(guild.id,user);
   }
   async revokeCaseAccess(guild:Guild,user:string) {
     const rows=this.store.all<CaseRow>('SELECT * FROM cases WHERE guild=? AND owner=?',guild.id,user);
@@ -186,6 +193,7 @@ export class ClinicBot {
     if(i.isChatInputCommand()&&i.commandName!=='klinik')return;
     if(!i.isChatInputCommand()&&!i.customId.startsWith('pk:'))return;
     try {
+      if(await this.personnel.handle(i))return;
       const opensModal=i.isButton()&&(!!forms[i.customId.slice(3).split(':')[0]!]||/^pk:(cashapprove|cashreject|appapprove|appreject|appinterview):/.test(i.customId));
       if(!opensModal)await i.deferReply({flags:MessageFlags.Ephemeral});
       const a=opensModal?this.cachedActor(i):await this.actor(i.guild,i.user.id);
@@ -199,6 +207,7 @@ export class ClinicBot {
             await this.exclusive('setup',()=>setup(i.guild!,this.store,a));
           await i.editReply('Kanallar, roller ve paneller hazir. Var olan diger sunucu kanallari degistirilmedi.');return;
         }
+        if(action==='personal') {const thread=await this.exclusive(`workspace:${a.id}`,()=>this.personnel.ensure(i.guild!,a.id));this.personnel.schedule(a.guild,a.id);await i.editReply(`Kisisel dosyan: <#${thread.id}>`);return;}
         if(forms[action]) {
           if(action==='apply'){if(a.jobs.length)throw new UserError('Zaten personelsin.');}
           else if(action==='case'||action==='book')requireJob(a,'reception','psychologist');
@@ -314,6 +323,7 @@ export class ClinicBot {
   private async command(i:Supported,a:Actor) {
     if(!i.guild)throw new UserError('Sunucu gerekli.');
     const sub=i.options.getSubcommand();
+    if(await this.personnel.command(i,a))return;
     if(sub==='ara'||sub==='seanslar'||sub==='bekleyenler') {await this.list(i,a,sub==='ara'?'cases':sub==='seanslar'?'visits':'pendingpage',(i.options.getInteger('sayfa')??1)-1,i.options.getString('isim')??'');return;}
     if(sub==='tarifeler') {requireJob(a,'psychologist','reception','finance');await i.editReply(['ilk','takip','cift'].map(k=>`${k}: ${formatMoney(this.store.price(a.guild,k as 'ilk'|'takip'|'cift'))}`).join('\n'));return;}
     if(sub==='tarife') {this.store.tariff(a,service(i.options.getString('hizmet',true)),i.options.getInteger('tutar',true));await i.editReply('Yeni tarife kaydedildi. Eski seans tutarlari korundu.');return;}
@@ -333,7 +343,7 @@ export class ClinicBot {
       else channel=await textChannel(i.guild,this.store,channels[kind]!);
       const found=await channel.messages.fetch(message);if(found.author.id!==i.guild.client.user.id)throw new UserError('Bu botun mesaji degil.');
       const marker=code(({cash:'FIN',application:'BAS',appointment:'RD',visit:'SN'} as Record<string,string>)[kind]!,Number(target));
-      if(![found.content,...found.embeds.map(e=>e.title??'')].some(v=>v.includes(marker)))throw new UserError('Mesaj kayit koduyla eslesmiyor.');
+      if(![found.content,...found.embeds.map(e=>e.title??'')].some(v=>v===marker||v.startsWith(`${marker} | `)))throw new UserError('Mesaj kayit koduyla eslesmiyor.');
       this.store.tx(()=>{this.store.setResource(a.guild,`${map[kind]}:${target}`,message);this.store.enqueue(a.guild,kind,target);this.store.audit(a,'delivery.link',`${kind}:${target}`);});
       await i.editReply('Mevcut mesaj eslestirildi; ayni kart yenilenecek.');return;
     }
@@ -403,6 +413,7 @@ export class ClinicBot {
   async tick() {
     const guild=await this.client.guilds.fetch(this.cfg.guild);
     if(!this.store.resource(guild.id,'channel:appointments'))return;
+    if(this.store.resource(guild.id,'channel:people'))this.personnel.scheduleDaily(guild.id);
     await this.processQueue(guild);
     const cursor=Number(this.store.resource(guild.id,'audit:cursor')||0);
     const events=this.store.all<{id:number;actor:string;action:string;target:string;at:number}>('SELECT * FROM audit WHERE guild=? AND id>? ORDER BY id LIMIT 100',guild.id,cursor);

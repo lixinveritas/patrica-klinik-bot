@@ -1,6 +1,6 @@
 # Patrica Klinik | Uygulama durumu
 
-Surum 0.2.0. Asamalar mevcut botun denetiminden cikarildi; "10 kat" olculmus
+Surum 0.3.0. Asamalar mevcut botun denetiminden cikarildi; "10 kat" olculmus
 bir performans iddiasi degildir. Canli API ve test sonuclari ayri raporlanir.
 
 | Asama | Uygulanan kapsam | Sinir |
@@ -14,6 +14,7 @@ bir performans iddiasi degildir. Canli API ve test sonuclari ayri raporlanir.
 | Kasa | Uzlastirma, teslim alindi kaydi, versiyonlu tarife ve tutar snapshot | Oyun bakiyesi elle girilir; maas orani uydurulmaz |
 | Aktarma | Yetkili TXT/guvenli HTML ciktisi, kalici kanit BLOB | Saklama suresi ve anonimlestirme politikasi kullanici karari bekler; veri silinmez |
 | Isletim | Windows gozetim, heartbeat/disk kontrolu, oturum acilisi, yedek/restore | Kullanici yerel yedek secti; ayri disk/bulut hedefi yok |
+| Personel dosyasi | Kisiye ozel alan, Istanbul gunluk karti, mazeret/devir/tutanak, personel aciklamasi ve yonetim gerekcesi | Otomatik devamsizlik tespiti, ceza ve maas kesintisi yok |
 
 ## Kabul kontrolleri
 

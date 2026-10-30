@@ -1,6 +1,7 @@
 import {spawnSync} from 'node:child_process';
 const git=args=>{const r=spawnSync('git',args,{encoding:'utf8',windowsHide:true});if(r.status!==0)throw new Error('Git kontrolu basarisiz.');return r.stdout;};
 const files=git(['ls-files','-z']).split('\0').filter(Boolean);
+for(const local of ['AGENTS.md','README.md','SECURITY.md'])if(files.includes(local))throw new Error(`Yalniz yerelde tutulmali: ${local}`);
 const token=process.env.DISCORD_TOKEN;
 for(const path of files){
  if(/(^|\/)(data|backups|node_modules|dist)(\/|$)|(^|\/)\.env(\.|$)(?!example$)|\.(sqlite(?:-wal|-shm)?|db|log|pid|lock)$/i.test(path)&&path!=='package-lock.json')throw new Error(`Yayina uygun olmayan dosya: ${path}`);

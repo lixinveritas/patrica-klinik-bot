@@ -1,8 +1,10 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, FileUploadBuilder, LabelBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, FileUploadBuilder, LabelBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } from 'discord.js';
+import {readFileSync} from 'node:fs';
 import { Store } from './store.js';
 
 export const color = 0x123f36;
 export const card = (title: string, description: string) => new EmbedBuilder().setColor(color).setTitle(title).setDescription(description).setFooter({text:'Patrica Klinik | Personel'});
+export function panelVisual(key:string,embed:EmbedBuilder) {const name=`patrica-${key}.png`;return {embeds:[embed.setImage(`attachment://${name}`)],files:[new AttachmentBuilder(readFileSync(new URL(`../../assets/panels/${key}.png`,import.meta.url)),{name})]};}
 export function buttons(store: Store,guild: string,items: [string,string,string?][]) {
   const rows: ActionRowBuilder<ButtonBuilder>[]=[];
   for(let i=0;i<items.length;i+=5) {
@@ -32,15 +34,15 @@ export function modal(id:string,title:string,fields:Field[]) {
   return m;
 }
 export function staffPanel(s:Store,g:string) {
-  return {embeds:[card('Patrica | Calisma Masasi','Dosya, randevu ve gorusme kayitlarini buradan yonet. Her kayit sorumlu personelle birlikte saklanir.')],components:buttons(s,g,[
-    ['case','Dosya Ac','folder'],['book','Randevu','calendar'],['visit','Seans Kaydet','notes'],['income','Tahsilat Bildir','receipt'],['shiftin','Mesai Ac','clock'],['shiftout','Mesai Kapat','clock'],['agenda','Randevularim','calendar'],['cases','Dosyalar','folder'],['visits','Seans Kodlari','notes']
+  return {...panelVisual('staff',card('Patrica | Calisma Masasi','Personel Dosyam ile kendi gunluk alanina gec. Dosya, randevu ve gorusme kayitlarini buradan yonet.')),components:buttons(s,g,[
+    ['personal','Personel Dosyam'],['case','Dosya Ac','folder'],['book','Randevu','calendar'],['visit','Seans Kaydet','notes'],['income','Tahsilat Bildir','receipt'],['shiftin','Mesai Ac','clock'],['shiftout','Mesai Kapat','clock'],['agenda','Randevularim','calendar'],['cases','Dosyalar','folder'],['visits','Seans Kodlari','notes']
   ])};
 }
 export function financePanel(s:Store,g:string) {
-  return {embeds:[card('Patrica | Finans','Bekleyen bildirimler kasaya dahil degildir. Onay vermeden once oyun ici para hareketini eslestir.')],components:buttons(s,g,[['summary','Kasa Ozeti','receipt'],['pending','Bekleyen Kayitlar','notes'],['expense','Gider Bildir','receipt'],['refund','Iade Talebi','receipt'],['export','Hesap Dokumu','folder']])};
+  return {...panelVisual('finance',card('Patrica | Finans','Bekleyen bildirimler kasaya dahil degildir. Onay vermeden once oyun ici para hareketini eslestir.')),components:buttons(s,g,[['summary','Kasa Ozeti','receipt'],['pending','Bekleyen Kayitlar','notes'],['expense','Gider Bildir','receipt'],['refund','Iade Talebi','receipt'],['export','Hesap Dokumu','folder']])};
 }
 export function applicationPanel(s:Store,g:string) {
-  return {embeds:[card('Patrica | Personel Basvurusu','Psikolog veya resepsiyon gorevi icin basvurabilirsin. Karakter bilgilerini ve OOC deneyimini ayri belirt. Gercek hayata ait ozel bilgi istemiyoruz.')],components:buttons(s,g,[['apply','Basvuru Yap','notes'],['applicationstatus','Basvuru Durumum','folder']])};
+  return {...panelVisual('apply',card('Patrica | Personel Basvurusu','Psikolog veya resepsiyon gorevi icin basvurabilirsin. Karakter bilgilerini ve OOC deneyimini ayri belirt. Gercek hayata ait ozel bilgi istemiyoruz.')),components:buttons(s,g,[['apply','Basvuru Yap','notes'],['applicationstatus','Basvuru Durumum','folder']])};
 }
 export const forms: Record<string,{title:string;fields:Field[]}>={
   apply:{title:'Personel Basvurusu',fields:[{id:'name',label:'Karakter adi',max:80},{id:'job',label:'Gorev: psikolog / resepsiyon',max:20},{id:'ic',label:'IC: iletisim, egitim ve is gecmisi',long:true,max:600},{id:'ooc',label:'OOC: RP deneyimi ve musaitlik',long:true,max:600},{id:'scenario',label:'Danisan gizliligi nasil korunur?',long:true,max:600}]},

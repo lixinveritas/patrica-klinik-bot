@@ -13,5 +13,8 @@ backups/
 !package-lock.json
 *.tmp
 coverage/
+/AGENTS.md
+/README.md
+/SECURITY.md
 DURUM.md
 scripts/upgrade-source.mjs

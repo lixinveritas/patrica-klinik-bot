@@ -1,6 +1,6 @@
 {
   "name": "patrica-klinik-bot",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -20,7 +20,9 @@
     "start:background": "node scripts/launch.mjs",
     "restart": "node scripts/restart.mjs",
     "autostart:install": "node scripts/autostart.mjs",
-    "publish:check": "node --env-file-if-exists=.env scripts/publish-check.mjs"
+    "publish:check": "node --env-file-if-exists=.env scripts/publish-check.mjs",
+    "preview:personnel": "npm run build && node dist/src/preview-personnel.js",
+    "fonts": "node scripts/fonts.mjs"
   },
   "dependencies": {
     "discord.js": "14.27.0",

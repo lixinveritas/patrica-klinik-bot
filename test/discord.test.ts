@@ -24,7 +24,7 @@ test('tum formlar Discord sinirlarina uygun serilestirilir',()=>{
  }finally{s.close();}
 });
 test('yalniz yuklenmis ozel emoji kimligi kullanilir',()=>{
- const {s}=fixture();try{s.setResource(gid,'emoji:folder','888888888888888888');const b=staffPanel(s,gid).components[0]!.components[0]!.toJSON();assert.deepEqual('emoji' in b?b.emoji:undefined,{id:'888888888888888888'});}finally{s.close();}
+ const {s}=fixture();try{s.setResource(gid,'emoji:folder','888888888888888888');const b=staffPanel(s,gid).components[0]!.components[1]!.toJSON();assert.deepEqual('emoji' in b?b.emoji:undefined,{id:'888888888888888888'});}finally{s.close();}
 });
 test('roadmap metinleri mesaj sinirinda ve personel yazma izni acikca kapali',()=>{
  const {s,guild}=fixture();try{for(const m of roadmapMessages(s,gid)){assert.ok(m.length<=2000,`Mesaj uzun: ${m.length}`);assert.ok(m.length>100);}

@@ -22,6 +22,7 @@ process.once('SIGINT',()=>{stop();process.exit(0);});process.once('SIGTERM',()=>
 client.once(Events.ClientReady,async ready=>{
   if(ready.user.id!==c.app){console.error('Bot tokeni APPLICATION_ID ile eslesmiyor.');stop();return;}
   console.log('Patrica bot baglandi. Kurulum icin hedef sunucuda /klinik kur kullan.');
+  if(s.resource(c.guild,'channel:people'))await bot.personnel.bootstrap(await ready.guilds.fetch(c.guild)).catch(()=>console.error('Mevcut personel eslestirmesi tamamlanamadi.'));
   let ticking=false;
   const tick=async()=>{if(ticking||stopping)return;ticking=true;try{await bot.tick();}catch{console.error('Bakim veya hatirlatma tamamlanamadi. Kayitlar korundu.');}finally{ticking=false;}};
   timer=setInterval(()=>void tick(),60_000);
@@ -29,9 +30,10 @@ client.once(Events.ClientReady,async ready=>{
 });
 client.on(Events.InteractionCreate,i=>void bot.handle(i));
 client.on(Events.GuildMemberAdd,m=>void bot.onJoin(m).catch(()=>console.error('Aday rolu atanamadi.')));
-client.on(Events.GuildMemberRemove,m=>{if(m.guild.id===c.guild)void bot.revokeCaseAccess(m.guild,m.id).catch(()=>console.error('Dosya erisimi kaldirilamadi.'));});
+client.on(Events.GuildMemberRemove,m=>{if(m.guild.id===c.guild){void bot.revokeCaseAccess(m.guild,m.id).catch(()=>console.error('Dosya erisimi kaldirilamadi.'));void bot.personnel.revoke(m.guild,m.id).catch(()=>console.error('Personel alani kapatilamadi.'));}});
 client.on(Events.GuildMemberUpdate,(_old,m)=>{
   if(m.guild.id!==c.guild)return;
+  bot.personnel.schedule(m.guild.id,m.id);
   void bot.actor(m.guild,m.id).then(a=>{
     if(!a.jobs.some(j=>j==='manager'||j==='psychologist'))return bot.revokeCaseAccess(m.guild,m.id);
   }).catch(()=>console.error('Personel erisimi kontrol edilemedi.'));
