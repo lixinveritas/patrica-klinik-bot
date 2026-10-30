@@ -45,7 +45,7 @@ export class Personnel {
     }
     if(!thread){
       const marker=`workspace-start:${user}`;if(this.s.resource(guild.id,marker))throw new DeliveryUncertain();this.s.setResource(guild.id,marker,String(Date.now()));
-      const slug=member.displayName.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,35)||'personel';
+      const slug=(this.s.resource(guild.id,`staffname:${user}`)??member.displayName).normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,35)||'personel';
       const job=a.jobs.includes('psychologist')?'psikolog':'personel';
       thread=await parent.threads.create({name:`${job}-${slug}-${user}`,type:ChannelType.PrivateThread,invitable:false,autoArchiveDuration:1440,reason:'Patrica kisisel personel dosyasi'});
     }
@@ -61,13 +61,13 @@ export class Personnel {
     if(!state.active){await this.revoke(guild,user);return;}
     const thread=await this.bot.exclusive(`workspace:${user}`,()=>this.ensure(guild,user));
     const data=this.data.daily({id:user,guild:guild.id,jobs:state.a.jobs});
-    const image=await dailyCard(state.member.displayName,state.a.jobs.includes('psychologist')?'Psikolog':state.a.jobs.includes('manager')?'Yonetim':state.a.jobs.includes('finance')?'Finans':'Resepsiyon',data);
+    const image=await dailyCard(this.s.resource(guild.id,`staffname:${user}`)??state.member.displayName,state.a.jobs.includes('psychologist')?'Psikolog':state.a.jobs.includes('manager')?'Yonetim':state.a.jobs.includes('finance')?'Finans':'Resepsiyon',data);
     const dailyName='personel-gunluk.png';
     await deliver(this.s,guild.id,`workspacemsg:${user}:${data.day}`,thread,{embeds:[card(`Gunluk dosya | ${data.day}`,`Seans: ${data.visits.length} | Randevu: ${data.appointments} | Aktif dosya: ${data.cases}\nMesai: ${data.minutes} dk | Bekleyen finans: ${data.pending}\n\n${data.lines.slice(-12).join('\n')||'Bugun seans kaydi yok.'}${data.lines.length>12?'\nTum kodlar: Seanslarim butonu.':''}`).setImage(`attachment://${dailyName}`)],files:[new AttachmentBuilder(image,{name:dailyName})],components:buttons(this.s,guild.id,[['hr:today','Bugunu Yenile'],['cases','Dosyalar'],['visits','Seans Kodlari'],['agenda','Randevular'],['hr:absence','Mazeret Bildir'],['hr:handover','Devir Notu'],['hr:mine:0','Personel Kayitlarim']])});
   }
   async publish(guild:Guild,id:number) {
     const system:Actor={id:'system',guild:guild.id,jobs:['manager']};const r=this.data.report(system,id);
-    const name=(await guild.members.fetch(r.subject).catch(()=>null))?.displayName??r.subject;
+    const name=this.s.resource(guild.id,`staffname:${r.subject}`)??(await guild.members.fetch(r.subject).catch(()=>null))?.displayName??r.subject;
     const response=this.s.get<{body:string;at:number}>('SELECT body,at FROM staff_statements WHERE guild=? AND report=?',guild.id,id);
     const image=await reportCard(name,r);const filename=`${code('IK',id)}.png`;
     const description=`Personel: ${visible(name)}\nTarih: ${r.day}${r.until_day!==r.day?' / '+r.until_day:''}\nDurum: ${reportStates[r.state]??r.state}\n\n${visible(r.body)}\n\nIlgili kayit: ${visible(r.reference)}${response?'\n\nPersonelin aciklamasi:\n'+visible(response.body):''}${r.reason?'\n\nYonetim karari:\n'+visible(r.reason):''}\n\nTutanak otomatik ceza veya maas kesintisi olusturmaz.`;

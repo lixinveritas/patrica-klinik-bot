@@ -2,6 +2,25 @@
 
 ## Gunluk kullanim
 
+### Karakter adi ve Discord hesabi
+
+Basvuruda karakterin ad ve soyadi yazilir. Onay karari bu adi ayni Discord
+kullanici ID'sine baglar; gorev rolu yetkiyi belirler. Bot takma adi
+degistirebiliyorsa sunucudaki gorunen adi da uygular. Sunucu sahibi veya botun
+rolunun ustundeki hesaplarda Discord adi elle duzenlenir; kayitli karakter adi
+personel kartinda yine kullanilir. Basvuru kartindaki **Discord adi** durumu
+bu ayrimi gosterir.
+
+Elle personel atamasinda `/klinik personel` komutunun `karakter-adi` alani ilk
+atamada zorunludur. Sonraki RP adi degisikliginde bot sahibi `/klinik isim`
+kullanir. Karakter adi ad ve soyad biciminde, en fazla 32 karakterdir. Ayni
+karakter adini kullanan iki Discord hesabini sistem otomatik olarak tek kisi
+saymaz; resmi kimlik Discord ID'sidir.
+
+`roadmap` kanalinin ilk mesajinda Sharp ile uretilen resimli dort adimli
+rehber vardir. Alttaki metinler kanal, kod ve istisna aciklamalarini tasir.
+Gorselde hazir emoji, stok gorsel veya AI uretilmis varlik yoktur.
+
 ### Kisisel personel dosyasi
 
 Personel kabul edildiginde veya gorev atandiginda `personel-dosyalari` altinda
@@ -64,6 +83,9 @@ mesai ve listeler. `roadmap` her kanalin ne ise yaradigini anlatir.
 Basvuru onayi ile rol atamasi ayri durumlardir. Rol hiyerarsisi veya izin
 engeli varsa karar korunur, yetki atamasi bekler. Eski basvuru, personelden
 cikarilan kisinin rolunu yeniden vermemelidir.
+Discord adinin otomatik degismesi icin botun `Manage Nicknames` izni ve hedefe
+gore yeterli rol hiyerarsisi gerekir. Bu izin yoksa onayli RP adi kayitta kalir;
+takma adi yonetim elle ayarlar.
 
 ## Para kurallari
 

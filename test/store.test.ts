@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { Actor, localTime, money, service } from '../src/domain.js';
+import { Actor, characterName, localTime, money, service } from '../src/domain.js';
 import { Store } from '../src/store.js';
 
 const psy:Actor={id:'111111111111111111',guild:'999999999999999999',jobs:['psychologist']};
@@ -59,7 +59,11 @@ test('Istanbul saati ve takvim dogrulamasi',()=>{
  assert.equal(new Date(localTime('2026-11-02 21:30')).toISOString(),'2026-11-02T18:30:00.000Z');assert.throws(()=>localTime('2026-02-30 21:30'));assert.throws(()=>localTime('yarin aksam'));
 });
 test('tek acik basvuru ve yetkili karar',()=>{
- const s=new Store(':memory:');try{const r=s.apply(outsider,'Kurgu Personel','psychologist','IC egitim gecmisi, OOC deneyim ve senaryo cevabi.','b1');assert.throws(()=>s.apply(outsider,'Kurgu Personel','psychologist','Yeni basvuru icin yeterli aciklama.','b2'),/Bekleyen/);assert.throws(()=>s.decideApplication(reception,r.id,'approved','Uygun goruldu'),/yetkin/);s.decideApplication(boss,r.id,'interview','Gorusmeye uygun');s.decideApplication(boss,r.id,'approved','Gorusme tamamlandi');assert.throws(()=>s.decideApplication(boss,r.id,'rejected','Sonradan degistir'),/sonuclanmis/);}finally{s.close();}
+ const s=new Store(':memory:');try{const r=s.apply(outsider,'Kurgu Personel','psychologist','IC egitim gecmisi, OOC deneyim ve senaryo cevabi.','b1');assert.throws(()=>s.apply(outsider,'Kurgu Personel','psychologist','Yeni basvuru icin yeterli aciklama.','b2'),/Bekleyen/);assert.throws(()=>s.decideApplication(reception,r.id,'approved','Uygun goruldu'),/yetkin/);s.decideApplication(boss,r.id,'interview','Gorusmeye uygun');s.decideApplication(boss,r.id,'approved','Gorusme tamamlandi');assert.equal(s.resource(outsider.guild,`staffname:${outsider.id}`),'Kurgu Personel');assert.equal(s.resource(outsider.guild,`nameapplied:${outsider.id}`),'pending');assert.throws(()=>s.decideApplication(boss,r.id,'rejected','Sonradan degistir'),/sonuclanmis/);}finally{s.close();}
+});
+test('karakter adi ad soyad ister ve Discord takma adi sinirina uyar',()=>{
+ assert.equal(characterName('  Mira   Patrica  '),'Mira Patrica');
+ for(const name of ['Mira','Mira123 Patrica','@everyone Patrica','Mira\nPatrica','A'.repeat(33)+' B'])assert.throws(()=>characterName(name));
 });
 test('audit ve defter satirlari uygulama SQLinden silinemez',()=>{
  const {s,v}=fixture();try{const r=s.submitCash(psy,'income',`SN-${v.id}`,20000,proof(1),'c1');s.decideCash(finance,r.id,true,'Kontrol edildi');assert.throws(()=>s.db.exec('DELETE FROM ledger'),/append only/);assert.throws(()=>s.db.exec('UPDATE audit SET actor=\'other\''),/append only/);}finally{s.close();}

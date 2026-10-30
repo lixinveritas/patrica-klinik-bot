@@ -45,3 +45,20 @@ export async function reportCard(name:string,row:StaffReport,demo=false) {
 export async function panelCard(title:string,description:string) {
   return sharp(background(380,[338])).composite(await Promise.all([label('Patrica Klinik',58,34,61,paper,900,true),label('Personel / Klinik / Finans',62,120,22,'#d5e2d8'),label(title,60,201,42,ink,1080,true),label(description,62,272,25,muted,1060,false,55)])).png().toBuffer();
 }
+export async function roadmapCard() {
+  const steps=[
+    ['Basvuru','Karakter adi, gorev, IC ve OOC bilgi'],
+    ['Onay','Yonetim gorev rolunu ve karakter adini eslestirir'],
+    ['Personel Dosyam','Gunluk kart, mazeret ve devir notu'],
+    ['Klinik ve kasa','Dosya, seans, kanit ve finans onayi']
+  ];
+  const overlays=await Promise.all([
+    label('Patrica Klinik',58,34,61,paper,700,true),label('PERSONEL REHBERI',62,120,22,'#d5e2d8'),
+    ...steps.flatMap(([title,detail],index)=>[
+      label(String(index+1).padStart(2,'0'),62,206+index*132,36,muted,78,true),
+      label(title!,154,197+index*132,37,ink,970,true),
+      label(detail!,154,247+index*132,24,muted,970)
+    ])
+  ]);
+  return sharp(background(760,[308,440,572,704])).composite(overlays).png().toBuffer();
+}

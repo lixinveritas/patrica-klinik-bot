@@ -1,7 +1,7 @@
 import { DatabaseSync, SQLInputValue, backup } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { Actor, PRICES, Service, UserError, line, money, proofHash, requireJob, snowflake, text } from './domain.js';
+import { Actor, PRICES, Service, UserError, characterName, line, money, proofHash, requireJob, snowflake, text } from './domain.js';
 import type { Evidence } from './evidence.js';
 import { diskAvailable, inspectBackup } from './recovery.js';
 
@@ -162,7 +162,7 @@ export class Store {
   }
   apply(a: Actor, name: string, job: string, body: string, request: string): Application {
     if(a.jobs.length)throw new UserError('Zaten personelsin.');
-    name=line(name,3,80);body=text(body,30,2000);
+    name=characterName(name);body=text(body,30,2000);
     if(!['psychologist','reception'].includes(job))throw new UserError('Gorev: psikolog veya resepsiyon.');
     return this.tx(()=>{
       const prior=this.get<Application>('SELECT * FROM applications WHERE guild=? AND request=?',a.guild,request);if(prior)return prior;
@@ -181,7 +181,7 @@ export class Store {
       if(row.state===state)return row;
       if(!['pending','interview'].includes(row.state))throw new UserError('Basvuru sonuclanmis.');
       this.run('UPDATE applications SET state=?,reviewer=?,reason=? WHERE guild=? AND id=?',state,a.id,reason,a.guild,id);
-      if(state==='approved'){this.setResource(a.guild,`staffdesired:${row.user}`,row.job);this.enqueue(a.guild,'staff',row.user);}
+      if(state==='approved'){this.setResource(a.guild,`staffdesired:${row.user}`,row.job);this.setResource(a.guild,`staffname:${row.user}`,row.name);this.setResource(a.guild,`nameapplied:${row.user}`,'pending');this.enqueue(a.guild,'staff',row.user);}
       this.audit(a,`application.${state}`,String(id));return this.application(a.guild,id);
     });
   }

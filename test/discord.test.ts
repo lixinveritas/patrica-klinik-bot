@@ -47,6 +47,15 @@ test('gecici fetch hatasinda roadmap mesaji kopyalanmaz ve kimlik korunur',async
  await assert.rejects(publishRoadmap(guild,s),/temporary/);assert.equal(sent,0);assert.equal(s.resource(gid,'roadmap:message:0'),'666666666666666666');
  }finally{s.close();}
 });
+test('onayli karakter adi Discord takma adina uygulanir; yetki yoksa manuel durum saklanir',async()=>{
+ const {s,guild,bot}=fixture();try{
+  s.setResource(gid,`staffname:${uid}`,'Mira Patrica');let nickname='Discord Adi';let allowed=true;
+  Object.assign(guild,{members:{fetch:async()=>({displayName:nickname,manageable:allowed,setNickname:async(name:string)=>{nickname=name;}})}});
+  assert.equal(await bot.syncCharacterName(guild,uid),true);assert.equal(nickname,'Mira Patrica');assert.equal(s.resource(gid,`nameapplied:${uid}`),'done');
+  s.setResource(gid,`staffname:${uid}`,'Mira Patrici');allowed=false;
+  assert.equal(await bot.syncCharacterName(guild,uid),false);assert.equal(nickname,'Mira Patrica');assert.equal(s.resource(gid,`nameapplied:${uid}`),'manual');
+ }finally{s.close();}
+});
 function interaction(guild:Guild,kind:'button'|'modal',id:string,fields:Record<string,string>={}) {
  const replies:unknown[]=[];
  const i={id:'123456789123456789',guild,guildId:gid,user:{id:uid},member:{roles:['400000000000000002']},customId:`pk:${id}`,deferred:false,replied:false,

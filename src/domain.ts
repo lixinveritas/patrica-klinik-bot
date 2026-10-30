@@ -16,6 +16,11 @@ export function text(s: string, min = 1, max = 1000): string {
 export function line(s: string,min=1,max=160):string {
   const v=text(s,min,max);if(/[\r\n\u2028\u2029]/.test(v))throw new UserError('Bu alan tek satir olmali.');return v;
 }
+export function characterName(s:string):string {
+  const name=line(s,3,32).replace(/ +/g,' ');
+  if(!/^\p{L}+(?:[ '-]\p{L}+){1,3}$/u.test(name))throw new UserError('Karakter adi ve soyadini yaz: Mira Patrica gibi.');
+  return name;
+}
 export function snowflake(v: string): string {
   if (!/^\d{17,20}$/.test(v)) throw new UserError('Gecerli Discord kullanici kimligi yaz.');
   return v;

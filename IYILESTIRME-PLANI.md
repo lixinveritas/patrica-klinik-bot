@@ -15,6 +15,17 @@ bir performans iddiasi degildir. Canli API ve test sonuclari ayri raporlanir.
 | Aktarma | Yetkili TXT/guvenli HTML ciktisi, kalici kanit BLOB | Saklama suresi ve anonimlestirme politikasi kullanici karari bekler; veri silinmez |
 | Isletim | Windows gozetim, heartbeat/disk kontrolu, oturum acilisi, yedek/restore | Kullanici yerel yedek secti; ayri disk/bulut hedefi yok |
 | Personel dosyasi | Kisiye ozel alan, Istanbul gunluk karti, mazeret/devir/tutanak, personel aciklamasi ve yonetim gerekcesi | Otomatik devamsizlik tespiti, ceza ve maas kesintisi yok |
+| RP kimligi | Basvuru adi onayda Discord ID'sine baglanir; yetki varsa takma ad guncellenir; elle atama ve ad duzeltme komutlari | Sunucu sahibi/ust rolde ad elle duzenlenir; ayni isimli iki hesap otomatik birlestirilmez |
+| Resimli rehber | Mevcut roadmap kanalinda dort adimli Sharp gorseli ve ayrintili metinler | Gorsel ozet, ayrintili islem kurallarinin yerini almaz |
+
+## Sonraki kararlar
+
+- Personel listesi gerekirse onayli karakter adi, gorev ve Discord ID'sini
+  yonetim kanalinda sayfali goster. Mevcut ozel dosya izinlerini genisletme.
+- Mazeret kabul edildiginde cakisan randevular icin yonetime uyari eklenebilir;
+  randevulari otomatik iptal etme karari ayrica verilmeli.
+- RP adinin degisim gecmisi ve ayni adli personel uyarisi, ekip buyudugunde
+  kimlik karisikligi gorulurse eklenmeli.
 
 ## Kabul kontrolleri
 

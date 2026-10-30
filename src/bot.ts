@@ -1,7 +1,7 @@
 import { AttachmentBuilder, ChannelType, ChatInputCommandInteraction, Client, Guild, GuildMember, Interaction, RepliableInteraction, MessageFlags, ThreadChannel } from 'discord.js';
 import { resolve } from 'node:path';
 import { Config } from './config.js';
-import { Actor, Job, UserError, formatMoney, formatTime, localTime, money, requireJob, service, snowflake, text, visible } from './domain.js';
+import { Actor, Job, UserError, characterName, formatMoney, formatTime, localTime, money, requireJob, service, snowflake, text, visible } from './domain.js';
 import { Application, CaseRow, Cash, Appointment, Store, code, numberCode } from './store.js';
 import { RoleKey, overwrites, roles, setup, textChannel } from './setup.js';
 import { buttons, card, forms, modal } from './ui.js';
@@ -125,11 +125,21 @@ export class ClinicBot {
       const selected=this.store.resource(guild.id,`role:${job}`);const staff=this.store.resource(guild.id,'role:staff');
       if(!selected||!staff)throw new UserError('Kurulum eksik.');
       await member.roles.add([selected,staff],'Patrica gorev atamasi');
+      await this.syncCharacterName(guild,user);
     } else {
       const candidate=this.store.resource(guild.id,'role:candidate');if(candidate)await member.roles.add(candidate);
       this.store.run('UPDATE shifts SET ends=? WHERE guild=? AND staff=? AND ends IS NULL',Date.now(),guild.id,user);
     }
     this.personnel.schedule(guild.id,user);
+  }
+  async syncCharacterName(guild:Guild,user:string):Promise<boolean> {
+    const name=this.store.resource(guild.id,`staffname:${user}`);if(!name)return true;
+    const member=await guild.members.fetch({user,force:true});
+    if(member.displayName===name){this.store.setResource(guild.id,`nameapplied:${user}`,'done');return true;}
+    if(!member.manageable){this.store.setResource(guild.id,`nameapplied:${user}`,'manual');return false;}
+    try{await member.setNickname(name,'Patrica onayli karakter adi');}
+    catch(e){if(e&&typeof e==='object'&&'code' in e&&e.code===50013){this.store.setResource(guild.id,`nameapplied:${user}`,'manual');return false;}throw e;}
+    this.store.setResource(guild.id,`nameapplied:${user}`,'done');return true;
   }
   async revokeCaseAccess(guild:Guild,user:string) {
     const rows=this.store.all<CaseRow>('SELECT * FROM cases WHERE guild=? AND owner=?',guild.id,user);
@@ -182,7 +192,8 @@ export class ClinicBot {
   }
   async publishApplication(guild:Guild,row:Application) {
     const channel=await textChannel(guild,this.store,'applications');
-    const payload={embeds:[card(`${code('BAS',row.id)} | ${row.state}`,`Karakter: ${visible(row.name)}\nDiscord ID: ${row.user}\nGorev: ${row.job}\nYetki: ${row.state==='approved'?(this.store.resource(guild.id,`appapplied:${row.id}`)?'Uygulandi':'Atama bekliyor'):'Karar bekliyor'}\n\n${visible(row.body)}`)],components:buttons(this.store,guild.id,[
+    const nameState=this.store.resource(guild.id,`nameapplied:${row.user}`);
+    const payload={embeds:[card(`${code('BAS',row.id)} | ${row.state}`,`Karakter: ${visible(row.name)}\nDiscord ID: ${row.user}\nGorev: ${row.job}\nYetki: ${row.state==='approved'?(this.store.resource(guild.id,`appapplied:${row.id}`)?'Uygulandi':'Atama bekliyor'):'Karar bekliyor'}${row.state==='approved'?`\nDiscord adi: ${nameState==='done'?'Guncellendi':nameState==='manual'?'Elle duzenlenmeli':'Bekliyor'}`:''}\n\n${visible(row.body)}`)],components:buttons(this.store,guild.id,[
       [`appinterview:${row.id}`,'Gorusmeye Cagir'],[`appapprove:${row.id}`,'Onayla'],[`appreject:${row.id}`,'Reddet']
     ]),allowedMentions:{parse:[] as []}};
     await deliver(this.store,guild.id,`appmsg:${row.id}`,channel,payload);
@@ -274,7 +285,7 @@ export class ClinicBot {
         });
         let notified=true;
         try{const user=await this.client.users.fetch(row.user);await user.send({content:`Patrica Klinik | ${code('BAS',id)}\nDurum: ${state}\n${visible(text(reason,3,300))}`,allowedMentions:{parse:[]}});}catch{notified=false;}
-        await i.editReply(`Basvuru ${state}.${notified?'':' Ozel mesaj kapali; adaya ulasilamadi.'}`);return;
+        await i.editReply(`Basvuru ${state}.${state==='approved'&&this.store.resource(a.guild,`nameapplied:${row.user}`)==='manual'?' Discord adini elle karakter adina cevir.':''}${notified?'':' Ozel mesaj kapali; adaya ulasilamadi.'}`);return;
       }
       if(action!=='form'||!arg)throw new UserError('Form taninmiyor.');
       if(arg==='apply') {
@@ -372,15 +383,28 @@ export class ClinicBot {
     if(sub==='personel') {
       if(!this.cfg.owners.includes(a.id))throw new UserError('Gorev atamasini bot sahibi yapabilir.');
       const target=i.options.getUser('kisi',true);const job=i.options.getString('gorev',true) as RoleKey|'offboard';
+      const character=i.options.getString('karakter-adi');if(job==='offboard'&&character)throw new UserError('Personelden cikarmada karakter adi verilmez.');
       if(this.cfg.owners.includes(target.id)||target.bot)throw new UserError('Bu hesap panelden degistirilemez.');
+      if(job!=='offboard'&&!character&&!this.store.resource(a.guild,`staffname:${target.id}`))throw new UserError('Ilk gorev atamasinda karakter adi ve soyadini yaz.');
       await this.exclusive(`member:${target.id}`,async()=>{
         this.store.tx(()=>{
+          if(character){this.store.setResource(a.guild,`staffname:${target.id}`,characterName(character));this.store.setResource(a.guild,`nameapplied:${target.id}`,'pending');}
           for(const row of this.store.all<Application>("SELECT id FROM applications WHERE guild=? AND user=? AND state='approved'",a.guild,target.id))this.store.setResource(a.guild,`appapplied:${row.id}`,'superseded');
           this.store.setResource(a.guild,`staffdesired:${target.id}`,job);this.store.enqueue(a.guild,'staff',target.id);this.store.audit(a,`staff.${job}`,target.id);
         });
         await this.syncMember(i.guild!,target.id,job);
       });
-      await i.editReply('Gorev kaydedildi ve personel yetkileri guncellendi.');return;
+      await i.editReply(`Gorev kaydedildi ve personel yetkileri guncellendi.${this.store.resource(a.guild,`nameapplied:${target.id}`)==='manual'?' Discord adini elle karakter adina cevir.':''}`);return;
+    }
+    if(sub==='isim') {
+      if(!this.cfg.owners.includes(a.id))throw new UserError('Karakter adini bot sahibi duzenleyebilir.');
+      const target=i.options.getUser('kisi',true),name=characterName(i.options.getString('karakter-adi',true));
+      if(target.bot)throw new UserError('Bot hesabina karakter adi verilmez.');
+      const member=await i.guild.members.fetch({user:target.id,force:true});
+      if(!this.cfg.owners.includes(target.id)&&![...Object.keys(roles)].some(k=>k!=='candidate'&&k!=='staff'&&member.roles.cache.has(this.store.resource(a.guild,`role:${k}`)!)))throw new UserError('Kisi aktif personel degil.');
+      this.store.tx(()=>{this.store.setResource(a.guild,`staffname:${target.id}`,name);this.store.setResource(a.guild,`nameapplied:${target.id}`,'pending');this.store.audit(a,'character.set',target.id);});
+      const applied=await this.syncCharacterName(i.guild,target.id);this.personnel.schedule(a.guild,target.id);
+      await i.editReply(applied?`${name} kaydedildi ve Discord adi guncellendi.`:`${name} kaydedildi. Discord adi bot tarafindan degistirilemiyor; sunucuda elle duzenle.`);return;
     }
     if(sub==='randevu') {
       this.store.appointmentState(a,numberCode(i.options.getString('kod',true),'RD'),i.options.getString('durum',true));await i.editReply('Randevu durumu guncellendi.');return;

@@ -1,10 +1,11 @@
 import {mkdirSync,writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
-import {dailyCard,reportCard,panelCard} from './personnel-cards.js';
+import {dailyCard,reportCard,panelCard,roadmapCard} from './personnel-cards.js';
 import {today} from './personnel-store.js';
 const dir=resolve('data/previews');mkdirSync(dir,{recursive:true});
 writeFileSync(resolve(dir,'personel.png'),await dailyCard('Mira Patrica','Psikolog',{day:today(),cases:12,appointments:3,minutes:95,pending:1,visits:[1,2],activeShift:true},true));
 writeFileSync(resolve(dir,'tutanak.png'),await reportCard('Ornek Personel',{id:1,guild:'demo',subject:'demo',maker:'demo',kind:'absence',day:today(),until_day:today(),body:'Bugunku vardiyama katilamayacagim. Bekleyen randevular icin yonetime devir bilgisi biraktim. Yarin aksam yeniden musaitim.',reference:'-',state:'pending',reviewer:null,reason:null,at:Date.now()},true));
 const panels=resolve('assets/panels');mkdirSync(panels,{recursive:true});
 for(const [key,title,description] of [['staff','Calisma masasi','Dosya, randevu, seans ve gunluk isler.'],['finance','Finans masasi','Tahsilat, kanit kontrolu ve kasa defteri.'],['apply','Patrica\'da calismak','Karakterini ve deneyimini tanit.'],['personnel','Personel isleri','Mazeret, devir notu ve tutanak takibi.']])writeFileSync(resolve(panels,`${key}.png`),await panelCard(title!,description!));
+writeFileSync(resolve(panels,'roadmap.png'),await roadmapCard());
 console.log('Sentetik personel/tutanak onizlemeleri ve markali panel gorselleri hazir.');

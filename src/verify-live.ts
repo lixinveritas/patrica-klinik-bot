@@ -28,7 +28,7 @@ client.once(Events.ClientReady,async()=>{
   const commands=await guild.commands.fetch({withLocalizations:false});const klinik=commands.find(x=>x.applicationId===c.app&&x.name==='klinik');assert.ok(klinik);
   for(const sub of ['ara','seanslar','uzlastir','teslim','tarife','saglik','bildirim','tekrar','personelim','personel-kaydi','personel-isleri','personel-kurtar'])assert.ok(klinik.options.some(x=>x.name===sub));
   const roadmap=await textChannel(guild,s,'roadmap');assert.equal(roadmap.permissionsFor(s.resource(guild.id,'role:staff')!)?.has(P.SendMessages),false);
-  for(let n=0;n<6;n++){const m=await roadmap.messages.fetch(s.resource(guild.id,`roadmap:message:${n}`)!);assert.equal(m.author.id,c.app);}
+  for(let n=0;n<6;n++){const m=await roadmap.messages.fetch(s.resource(guild.id,`roadmap:message:${n}`)!);assert.equal(m.author.id,c.app);if(n===0)assert.ok(m.attachments.some(a=>a.name==='patrica-roadmap.png'));}
   const people=await textChannel(guild,s,'people');assert.equal(people.permissionsFor(guild.roles.everyone)?.has(P.ViewChannel),false);assert.equal(people.permissionsFor(s.resource(guild.id,'role:candidate')!)?.has(P.ViewChannel),false);assert.equal(people.permissionsFor(s.resource(guild.id,'role:staff')!)?.has(P.ViewChannel),true);
   const personnel=await textChannel(guild,s,'personnel');assert.equal(personnel.permissionsFor(s.resource(guild.id,'role:staff')!)?.has(P.ViewChannel),false);
   let workspaces=0;

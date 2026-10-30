@@ -15,7 +15,7 @@ client.once(Events.ClientReady,async()=>{
   assert.equal(announcements.permissionsFor(staff)?.has(P.SendMessages),false);
   assert.equal(channel.permissionsFor(staff)?.has(P.ViewChannel),true);assert.equal(channel.permissionsFor(staff)?.has(P.SendMessages),false);assert.equal(channel.permissionsFor(candidate)?.has(P.ViewChannel),false);
   const expected=roadmapMessages(s,guild.id);
-  for(const [index,content] of expected.entries()){const m=await channel.messages.fetch(s.resource(guild.id,`roadmap:message:${index}`)!);assert.equal(m.content,content);}
+  for(const [index,content] of expected.entries()){const m=await channel.messages.fetch(s.resource(guild.id,`roadmap:message:${index}`)!);assert.equal(m.content,content);if(index===0)assert.ok(m.attachments.some(a=>a.name==='patrica-roadmap.png'));}
   console.log(`Roadmap kanali olusturuldu/guncellendi; ${expected.length} rehber mesaji ve personel okuma izinleri canli dogrulandi.`);
   console.log(`https://discord.com/channels/${guild.id}/${channel.id}`);
  }catch(e){console.error(`Rehber yayini tamamlanamadi: ${e instanceof Error?e.name:'Error'}`);process.exitCode=1;}

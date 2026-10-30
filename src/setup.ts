@@ -1,4 +1,4 @@
-import { ChannelType, Guild, OverwriteResolvable, PermissionFlagsBits as P, TextChannel } from 'discord.js';
+import { AttachmentBuilder, ChannelType, Guild, OverwriteResolvable, PermissionFlagsBits as P, TextChannel } from 'discord.js';
 import { readFile } from 'node:fs/promises';
 import { Store } from './store.js';
 import { Actor, UserError } from './domain.js';
@@ -106,8 +106,9 @@ export async function publishRoadmap(guild:Guild,s:Store) {
     if(content.length>2000)throw new UserError('Rehber bolumu Discord mesaj sinirini asiyor.');
     const key=`roadmap:message:${index}`;const old=s.resource(guild.id,key);
     const message=old?await fetchExistingMessage(channel,old):null;
-    if(message){if(message.author.id!==guild.client.user.id)throw new UserError('Rehber mesaji botla eslesmiyor.');await message.edit({content,allowedMentions:{parse:[]}});}
-    else {const sent=await channel.send({content,allowedMentions:{parse:[]}});s.setResource(guild.id,key,sent.id);}
+    const visual=index===0?{files:[new AttachmentBuilder(await readFile(new URL('../../assets/panels/roadmap.png',import.meta.url)),{name:'patrica-roadmap.png'})]}:{};
+    if(message){if(message.author.id!==guild.client.user.id)throw new UserError('Rehber mesaji botla eslesmiyor.');await message.edit({content,attachments:[],...visual,allowedMentions:{parse:[]}});}
+    else {const sent=await channel.send({content,...visual,allowedMentions:{parse:[]}});s.setResource(guild.id,key,sent.id);}
   }
   return channel;
 }

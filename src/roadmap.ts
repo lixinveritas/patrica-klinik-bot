@@ -33,7 +33,7 @@ Yeni gelenin ilk gordugu yer. Personel basvurusu icin nereye gidecegini anlatir.
 Gizlilik, calisma esaslari ve ucretler. Danisan bilgisi kimle paylasilabilir, hangi hizmet kac para: once buraya bak.
 
 **${ch('apply','personel-basvurusu')}**
-Henuz personel olmayan kisi **Basvuru Yap** butonunu kullanir. Bu buton danisan kaydi acmaz. Gorev degisikligi icin yeniden basvurma; yonetime yaz.
+Henuz personel olmayan kisi **Basvuru Yap** butonunu kullanir. Oynadigin karakterin adini ve soyadini, istedigin gorevi, IC ve OOC bilgiyi ayri yaz. Onaylaninca karakter adi personel dosyana kaydedilir; botun Discord yetkisi varsa sunucudaki gorunen adin da guncellenir. Bu buton danisan kaydi acmaz. Gorev degisikligi icin yeniden basvurma; yonetime yaz.
 
 **${ch('announcements','kurum-duyurulari')}**
 Yonetimin resmi duyurulari. Vardiya, tarife veya calisma duzeni degisirse burada aciklanir.
@@ -97,7 +97,7 @@ Sadece odemeyle ilgili satirlari veya kirpilmis ekran goruntusunu ekle.
 Bu bolumdeki kanallari gorememek hata degil; gorevine gore kapali olabilir.
 
 **${ch('applications','basvuru-degerlendirme')}**
-Personel basvurulari buraya gelir. Gorusmeye Cagir, Onayla veya Reddet butonuyla ilerle. Karar gerekcesini yaz. Ozel mesaji kapali adaya bot ulasamayabilir; sonucu kendisine ayrica bildir.
+Personel basvurulari buraya gelir. Karakter adini RP kimligiyle kontrol et; Discord kullanici ID'si hesabi tanir, karakter adi onun yerini tutmaz. Gorusmeye Cagir, Onayla veya Reddet butonuyla ilerle. Karar gerekcesini yaz. Onay rol atamasini ve ad guncellemesini baslatir. Kartta **Discord adi: Elle duzenlenmeli** yaziyorsa takma adi sunucudan elle degistir. Ozel mesaji kapali adaya bot ulasamayabilir; sonucu kendisine ayrica bildir.
 
 **${ch('index','dosya-indeksi')}**
 Dosya kodu, sorumlu ve durum otomatik guncellenir. Klinik gorusme notlari bu listeye cikmaz.
@@ -110,6 +110,7 @@ Sikayet, yanlis islem ve personel sorunu icin. Ilgili PK/RD/FIN kodunu, ne oldug
 
 **Yetki ve dosya devri:**
 Bot sahibi **/klinik personel** ile gorev atar veya personeli cikarir.
+Elle gorev atarken **karakter-adi** alanini doldur. Ad sonradan degisirse **/klinik isim** kullan. Sunucu sahibi Mira Patrica dahil botun adini degistiremedigi hesaplarda kayitli RP adi personel kartinda gorunur; Discord takma adini yetkili kisi elle ayarlar. Gorev rolleri yetkidir, her karakter icin yeni rol acilmaz.
 Yonetim **/klinik devret** ile dosyayi baska psikologa verir. Gelecekteki randevular yeni psikologa aktarilir; cakisma varsa islem reddedilir. iptal secenegiyle randevulari iptal ederek devredebilirsin.
 **/klinik dosya-durumu** dosyayi kapatir veya yeniden acar. Kapatma bekleyen randevulari iptal eder.`,
 `# Takilirsan Once Buraya Bak
