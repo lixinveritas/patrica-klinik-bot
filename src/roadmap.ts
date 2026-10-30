@@ -33,7 +33,7 @@ Yeni gelenin ilk gordugu yer. Personel basvurusu icin nereye gidecegini anlatir.
 Gizlilik, calisma esaslari ve ucretler. Danisan bilgisi kimle paylasilabilir, hangi hizmet kac para: once buraya bak.
 
 **${ch('apply','personel-basvurusu')}**
-Henuz personel olmayan kisi **Psikolog Basvurusu** veya **Resepsiyon Basvurusu** butonunu secer. Formda gorev yazilmaz; karakterin adini ve soyadini, IC ve OOC bilgiyi ayri yaz. Basarili gonderimde BAS kodu gorunur ve yonetim kanalina kart duser. BAS kodu yoksa basvuru kaydedilmemistir; hatayi duzeltip yeniden gonder. Onaylaninca karakter adi personel dosyana kaydedilir; botun Discord yetkisi varsa sunucudaki gorunen adin da guncellenir. Gorev degisikligi icin yeniden basvurma; yonetime yaz.
+Henuz personel olmayan kisi **Psikolog**, **Resepsiyon** veya **Finans ve IK** basvuru butonunu secer. Formda gorev yazilmaz; karakterin adini ve soyadini, IC ve OOC bilgiyi ayri yaz. Basarili gonderimde BAS kodu ve adaya ozel sinav thread'i acilir. Her soru icin 60 saniye var; sure dolarsa soru yanlis sayilir. Sinav puani ve yanlislar yonetim kartinda gorunur, otomatik ise alim yapilmaz. BAS kodu yoksa basvuru kaydedilmemistir; hatayi duzeltip yeniden gonder. BAS kodu varsa yeniden basvurma, sinav alani gorunmuyorsa yonetime kodu bildir. Onaylaninca karakter adi personel dosyana kaydedilir; botun Discord yetkisi varsa sunucudaki gorunen adin da guncellenir. Gorev degisikligi icin yeniden basvurma; yonetime yaz.
 
 **${ch('announcements','kurum-duyurulari')}**
 Yonetimin resmi duyurulari. Vardiya, tarife veya calisma duzeni degisirse burada aciklanir.
@@ -65,7 +65,7 @@ Notta danisanin anlattigi, senin gozlemin, birlikte belirlenen hedef ve sonraki 
 **/klinik dosya kod:PK-0001** yaz. Yalniz sorumlu psikolog veya yonetim okuyabilir. Notlar dosya eki olarak sana ozel yanitta gelir.
 
 **Tarife:**
-Guncel fiyat icin /klinik tarifeler. Ilk kurulumda ilk: 20.000$, takip: 15.000$, cift: 25.000$ toplam. Yonetim yeni tarife kaydedebilir; eski seans tutari korunur.
+Guncel fiyat ve hizmet aciklamalari icin /klinik tarifeler. Ilk gorusme dosyanin ilk bireysel gorusmesi, takip sonraki bireysel gorusme, cift ise iki kisinin birlikte katildigi tek gorusmenin toplam ucretidir. Yonetim yeni tarife kaydedebilir; eski seans tutari korunur.
 Seans kaydetmek tek basina kasaya para eklemez.
 
 **Randevu bitince:**
@@ -96,8 +96,8 @@ Sadece odemeyle ilgili satirlari veya kirpilmis ekran goruntusunu ekle.
 `# Yonetim Kanallari
 Bu bolumdeki kanallari gorememek hata degil; gorevine gore kapali olabilir.
 
-**${ch('applications','basvuru-degerlendirme')}**
-Personel basvurulari buraya gelir. Karakter adini RP kimligiyle kontrol et; Discord kullanici ID'si hesabi tanir, karakter adi onun yerini tutmaz. Gorusmeye Cagir, Onayla veya Reddet butonuyla ilerle. Karar gerekcesini yaz. Onay rol atamasini ve ad guncellemesini baslatir. Kartta **Discord adi: Elle duzenlenmeli** yaziyorsa takma adi sunucudan elle degistir. Ozel mesaji kapali adaya bot ulasamayabilir; sonucu kendisine ayrica bildir.
+**${ch('applications','basvuru-takip')}**
+Yonetim ve finans/IK rolunun gorebildigi takip kanali. Personel basvurulari, sinav ilerlemesi, not ve yanlis cevaplar burada gorunur. Finans/IK izleyebilir; karari yonetim verir. Karakter adini RP kimligiyle kontrol et; Discord kullanici ID'si hesabi tanir, karakter adi onun yerini tutmaz. Sinav bitince Gorusmeye Cagir, Onayla veya Reddet butonuyla ilerle. Karar gerekcesini yaz. Onay rol atamasini ve ad guncellemesini baslatir. Kartta **Discord adi: Elle duzenlenmeli** yaziyorsa takma adi sunucudan elle degistir. Ozel mesaji kapali adaya bot ulasamayabilir; sonucu kendisine ayrica bildir.
 
 **${ch('index','dosya-indeksi')}**
 Dosya kodu, sorumlu ve durum otomatik guncellenir. Klinik gorusme notlari bu listeye cikmaz.

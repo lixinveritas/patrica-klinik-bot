@@ -12,20 +12,24 @@ const s=new Store(resolve(c.data,'patrica.sqlite'));
 const client=new Client({intents:[GatewayIntentBits.Guilds,GatewayIntentBits.GuildMembers],allowedMentions:{parse:[]}});
 const bot=new ClinicBot(client,s,c);
 let timer:ReturnType<typeof setInterval>|undefined;
+let quizTimer:ReturnType<typeof setInterval>|undefined;
 const health=()=>writeFileSync(resolve(c.data,'health.json'),JSON.stringify({pid:process.pid,at:Date.now(),ready:client.isReady(),uptime:Math.floor(process.uptime()),diskFree:diskAvailable(c.data),lowDisk:diskAvailable(c.data)<200*1024*1024}));
 const heartbeat=setInterval(health,30000);health();
 let stopping=false;
 function stop() {
-  if(stopping)return;stopping=true;if(timer)clearInterval(timer);clearInterval(heartbeat);client.destroy();s.close();if(readFileSync(lock,'utf8')===String(process.pid))unlinkSync(lock);
+  if(stopping)return;stopping=true;if(timer)clearInterval(timer);if(quizTimer)clearInterval(quizTimer);clearInterval(heartbeat);client.destroy();s.close();if(readFileSync(lock,'utf8')===String(process.pid))unlinkSync(lock);
 }
 process.once('SIGINT',()=>{stop();process.exit(0);});process.once('SIGTERM',()=>{stop();process.exit(0);});
 client.once(Events.ClientReady,async ready=>{
   if(ready.user.id!==c.app){console.error('Bot tokeni APPLICATION_ID ile eslesmiyor.');stop();return;}
   console.log('Patrica bot baglandi. Kurulum icin hedef sunucuda /klinik kur kullan.');
   if(s.resource(c.guild,'channel:people'))await bot.personnel.bootstrap(await ready.guilds.fetch(c.guild)).catch(()=>console.error('Mevcut personel eslestirmesi tamamlanamadi.'));
+  if(s.resource(c.guild,'channel:apply'))for(const row of s.all<{id:number}>("SELECT id FROM applications WHERE guild=? AND state IN ('pending','interview')",c.guild))s.enqueue(c.guild,'application',String(row.id));
   let ticking=false;
   const tick=async()=>{if(ticking||stopping)return;ticking=true;try{await bot.tick();}catch{console.error('Bakim veya hatirlatma tamamlanamadi. Kayitlar korundu.');}finally{ticking=false;}};
   timer=setInterval(()=>void tick(),60_000);
+  let quizRunning=false;
+  quizTimer=setInterval(()=>{if(quizRunning||stopping)return;quizRunning=true;void bot.quizTick().catch(()=>console.error('Sinav suresi kontrol edilemedi; kayitlar korundu.')).finally(()=>{quizRunning=false;});},5000);
   void tick();health();
 });
 client.on(Events.InteractionCreate,i=>void bot.handle(i));

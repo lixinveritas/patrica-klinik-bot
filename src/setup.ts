@@ -59,13 +59,13 @@ export async function setup(guild:Guild,s:Store,actor:Actor) {
     ['welcome','entry','hos-geldiniz'],['rules','entry','kurallar'],['apply','entry','personel-basvurusu'],
     ['announcements','staff','kurum-duyurulari'],['staff','staff','calisma-masasi'],['chat','staff','personel-iletisim'],['appointments','staff','randevu-takvimi'],['shifts','staff','mesai-ve-devir'],
     ['people','staff','personel-dosyalari'],['personnel','management','personel-kayitlari'],
-    ['applications','management','basvuru-degerlendirme'],['audit','management','islem-gecmisi'],['complaints','management','olay-ve-sikayet'],['index','management','dosya-indeksi'],
+    ['applications','management','basvuru-takip'],['audit','management','islem-gecmisi'],['complaints','management','olay-ve-sikayet'],['index','management','dosya-indeksi'],
     ['records','clinic','danisan-dosyalari'],
     ['finance','finance','finans-masasi'],['cash','finance','tahsilat-kayitlari']
   ] as const) {
-    const perms=parent==='entry'?[{id:guild.id,allow:[P.ViewChannel,P.ReadMessageHistory],deny:[P.SendMessages]} as OverwriteResolvable,{id:me.id,allow:[P.ViewChannel,P.SendMessages,P.ManageChannels]} as OverwriteResolvable]:overwrites(guild,s,parent==='staff'?['staff']:parent==='finance'?['finance']:parent==='clinic'?['psychologist']:[],undefined,key==='announcements'||key==='people');
+    const perms=parent==='entry'?[{id:guild.id,allow:[P.ViewChannel,P.ReadMessageHistory,...(key==='apply'?[P.SendMessagesInThreads]:[])],deny:[P.SendMessages]} as OverwriteResolvable,{id:me.id,allow:[P.ViewChannel,P.SendMessages,P.ManageChannels,P.ManageThreads]} as OverwriteResolvable]:overwrites(guild,s,parent==='staff'?['staff']:parent==='finance'||key==='applications'?['finance']:parent==='clinic'?['psychologist']:[],undefined,key==='announcements'||key==='people');
     const saved=s.resource(guild.id,`channel:${key}`);
-    if(saved){const c=await textChannel(guild,s,key);await c.permissionOverwrites.set(perms);continue;}
+    if(saved){const c=await textChannel(guild,s,key);await c.permissionOverwrites.set(perms);if(key==='applications'&&c.name!==name)await c.setName(name);continue;}
     if(guild.channels.cache.some(c=>c?.parentId===categories[parent]&&c.name===name))throw new UserError(`${name} eslesmeyen kanal var; yinelenmedi.`);
     const c=await guild.channels.create({name,type:ChannelType.GuildText,parent:categories[parent],topic:`Patrica:${key}`,permissionOverwrites:perms});
     s.setResource(guild.id,`channel:${key}`,c.id);
@@ -83,6 +83,7 @@ export async function setup(guild:Guild,s:Store,actor:Actor) {
     s.setResource(guild.id,`emoji:${icon}`,emoji.id);
   }
   await publishPanel(guild,s,'apply',applicationPanel(s,guild.id));
+  await publishPanel(guild,s,'applications',{embeds:[card('Basvuru Takip','Psikolog, resepsiyon ve finans/IK basvurulari burada gorunur. Kartta sinav ilerlemesi, not ve yanlis cevaplar guncellenir. Karari yalniz yonetim verir.')],components:buttons(s,guild.id,[['applications:0','Basvurulari Listele']])});
   await publishPanel(guild,s,'staff',staffPanel(s,guild.id));
   await publishPanel(guild,s,'finance',financePanel(s,guild.id));
   await publishPanel(guild,s,'personnel',{...panelVisual('personnel',card('Personel Isleri','Mazeretleri ve devir notlarini degerlendir. Tutanakta personelin aciklamasini ve karar gerekcesini kaydet. Otomatik ceza veya maas kesintisi yapilmaz.')),components:buttons(s,guild.id,[['hr:incident','Tutanak Ac'],['hr:pending:0','Bekleyen Kayitlar'],['hr:areas','Personel Alanlari']])});

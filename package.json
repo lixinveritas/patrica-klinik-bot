@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node --test dist/test/*.test.js",
+    "test": "npm run build && node --import ./dist/test/quiz-fixture.js --test dist/test/*.test.js",
     "start": "node --env-file=.env dist/src/main.js",
     "register": "node --env-file=.env dist/src/register.js",
     "provision": "node --env-file=.env dist/src/provision.js",

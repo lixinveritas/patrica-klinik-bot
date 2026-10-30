@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { Actor, PRICES, Service, UserError, characterName, line, money, proofHash, requireJob, snowflake, text } from './domain.js';
 import type { Evidence } from './evidence.js';
+import { questions, type ApplicationJob } from './application-questions.js';
 import { diskAvailable, inspectBackup } from './recovery.js';
 
 export interface CaseRow { id: number; guild: string; name: string; contact: string; owner: string; channel: string | null; state: string; }
@@ -34,6 +35,8 @@ export class Store {
       CREATE TABLE IF NOT EXISTS visits(id INTEGER PRIMARY KEY AUTOINCREMENT,guild TEXT NOT NULL,case_id INTEGER NOT NULL REFERENCES cases(id),staff TEXT NOT NULL,service TEXT NOT NULL,note TEXT NOT NULL,amount INTEGER NOT NULL CHECK(amount>0),request TEXT NOT NULL UNIQUE,at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS applications(id INTEGER PRIMARY KEY AUTOINCREMENT,guild TEXT NOT NULL,user TEXT NOT NULL,name TEXT NOT NULL,job TEXT NOT NULL,body TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending',reviewer TEXT,reason TEXT,request TEXT NOT NULL UNIQUE,at INTEGER NOT NULL);
       CREATE UNIQUE INDEX IF NOT EXISTS one_open_application ON applications(guild,user) WHERE state IN ('pending','interview');
+      CREATE TABLE IF NOT EXISTS application_answers(guild TEXT NOT NULL,application INTEGER NOT NULL REFERENCES applications(id),question INTEGER NOT NULL,choice INTEGER NOT NULL CHECK(choice BETWEEN -1 AND 3),request TEXT NOT NULL,at INTEGER NOT NULL,PRIMARY KEY(guild,application,question),UNIQUE(guild,request));
+      CREATE TABLE IF NOT EXISTS application_quiz(guild TEXT NOT NULL,application INTEGER NOT NULL REFERENCES applications(id),question INTEGER NOT NULL,deadline INTEGER NOT NULL,PRIMARY KEY(guild,application));
       CREATE TABLE IF NOT EXISTS cash(id INTEGER PRIMARY KEY AUTOINCREMENT,guild TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('income','expense','refund')),amount INTEGER NOT NULL CHECK(amount>0),visit INTEGER REFERENCES visits(id),original INTEGER REFERENCES cash(id),reference TEXT NOT NULL,proof TEXT NOT NULL,proof_hash TEXT NOT NULL,maker TEXT NOT NULL,state TEXT NOT NULL DEFAULT 'pending' CHECK(state IN ('pending','approved','rejected')),reviewer TEXT,reason TEXT,request TEXT NOT NULL UNIQUE,at INTEGER NOT NULL,UNIQUE(guild,proof_hash));
       CREATE UNIQUE INDEX IF NOT EXISTS one_visit_payment ON cash(guild,visit) WHERE state!='rejected' AND kind='income';
       CREATE TABLE IF NOT EXISTS ledger(id INTEGER PRIMARY KEY,guild TEXT NOT NULL,cash_id INTEGER NOT NULL UNIQUE REFERENCES cash(id),signed_amount INTEGER NOT NULL,at INTEGER NOT NULL);
@@ -163,7 +166,7 @@ export class Store {
   apply(a: Actor, name: string, job: string, body: string, request: string): Application {
     if(a.jobs.length)throw new UserError('Zaten personelsin.');
     name=characterName(name);body=text(body,30,2000);
-    if(!['psychologist','reception'].includes(job))throw new UserError('Gorev: psikolog veya resepsiyon.');
+    if(!Object.hasOwn(questions,job))throw new UserError('Gorev secimi gecersiz.');
     return this.tx(()=>{
       const prior=this.get<Application>('SELECT * FROM applications WHERE guild=? AND request=?',a.guild,request);if(prior)return prior;
       if(this.get('SELECT id FROM applications WHERE guild=? AND user=? AND state IN (?,?)',a.guild,a.id,'pending','interview'))throw new UserError('Bekleyen bir basvurun var.');
@@ -172,6 +175,50 @@ export class Store {
     });
   }
   application(guild: string,id: number): Application { const r=this.get<Application>('SELECT * FROM applications WHERE guild=? AND id=?',guild,id);if(!r)throw new UserError('Basvuru bulunamadi.');return r; }
+  applicationAnswers(guild:string,id:number) {this.application(guild,id);return this.all<{question:number;choice:number}>('SELECT question,choice FROM application_answers WHERE guild=? AND application=? ORDER BY question',guild,id);}
+  quizDeadline(guild:string,id:number) {return this.get<{question:number;deadline:number}>('SELECT question,deadline FROM application_quiz WHERE guild=? AND application=?',guild,id);}
+  startQuestion(guild:string,id:number,index:number,deadline:number) {
+    return this.tx(()=>{
+      const answers=this.applicationAnswers(guild,id),existing=this.quizDeadline(guild,id);
+      if(index!==answers.length)throw new UserError('Soru sirasi degisti.');
+      if(existing?.question===index)return existing.deadline;
+      if(existing&&existing.question>index)throw new UserError('Soru geriye alinmaz.');
+      this.run('INSERT INTO application_quiz(guild,application,question,deadline) VALUES(?,?,?,?) ON CONFLICT(guild,application) DO UPDATE SET question=excluded.question,deadline=excluded.deadline',guild,id,index,deadline);
+      return deadline;
+    });
+  }
+  expireQuestions(guild:string,now=Date.now()) {
+    const due=this.all<{application:number;question:number}>('SELECT application,question FROM application_quiz WHERE guild=? AND deadline<=? ORDER BY deadline LIMIT 30',guild,now);
+    for(const {application,question} of due)this.tx(()=>{
+      const clock=this.quizDeadline(guild,application),row=this.application(guild,application);
+      if(clock?.question!==question||clock.deadline>now)return;
+      if(['pending','interview'].includes(row.state)&&!this.get('SELECT question FROM application_answers WHERE guild=? AND application=? AND question=?',guild,application,question)){
+        this.run('INSERT INTO application_answers(guild,application,question,choice,request,at) VALUES(?,?,?,?,?,?)',guild,application,question,-1,`timeout:${application}:${question}`,now);
+        this.audit({id:'system',guild,jobs:['manager']},'application.timeout',String(application));
+      }
+      this.run('DELETE FROM application_quiz WHERE guild=? AND application=? AND question=?',guild,application,question);
+      this.enqueue(guild,'application',String(application));
+    });
+    return due.length;
+  }
+  answerApplication(a:Actor,id:number,index:number,choice:number,request:string) {
+    const row=this.application(a.guild,id),set=questions[row.job as ApplicationJob];
+    if(row.user!==a.id)throw new UserError('Bu basvuru sana ait degil.');
+    if(!['pending','interview'].includes(row.state))throw new UserError('Basvuru sonuclanmis.');
+    if(!set||!Number.isSafeInteger(index)||!Number.isSafeInteger(choice)||choice<0||choice>3||index<0||index>=set.length)throw new UserError('Soru veya cevap gecersiz.');
+    return this.tx(()=>{
+      const answers=this.applicationAnswers(a.guild,id);
+      if(answers[index])return {count:answers.length,already:true,timedOut:answers[index].choice===-1};
+      if(index!==answers.length)throw new UserError('Siradaki soruyu cevapla.');
+      const clock=this.quizDeadline(a.guild,id);
+      if(clock?.question!==index)throw new UserError('Soru henuz hazir degil.');
+      const timedOut=Date.now()>clock.deadline;
+      this.run('INSERT INTO application_answers(guild,application,question,choice,request,at) VALUES(?,?,?,?,?,?)',a.guild,id,index,timedOut?-1:choice,request,Date.now());
+      this.run('DELETE FROM application_quiz WHERE guild=? AND application=?',a.guild,id);
+      this.audit(a,'application.answer',String(id));
+      return {count:index+1,already:false,timedOut};
+    });
+  }
   decideApplication(a: Actor,id: number,state: string,reason: string) {
     requireJob(a,'manager');reason=text(reason,3,300);
     if(!['interview','approved','rejected'].includes(state))throw new UserError('Karar gecersiz.');
@@ -180,6 +227,7 @@ export class Store {
       if(row.user===a.id)throw new UserError('Kendi basvurunu degerlendiremezsin.');
       if(row.state===state)return row;
       if(!['pending','interview'].includes(row.state))throw new UserError('Basvuru sonuclanmis.');
+      if(state==='approved'&&this.applicationAnswers(a.guild,id).length!==questions[row.job as ApplicationJob]?.length)throw new UserError('Sinav tamamlanmadan onay verilemez.');
       this.run('UPDATE applications SET state=?,reviewer=?,reason=? WHERE guild=? AND id=?',state,a.id,reason,a.guild,id);
       if(state==='approved'){this.setResource(a.guild,`staffdesired:${row.user}`,row.job);this.setResource(a.guild,`staffname:${row.user}`,row.name);this.setResource(a.guild,`nameapplied:${row.user}`,'pending');this.enqueue(a.guild,'staff',row.user);}
       this.audit(a,`application.${state}`,String(id));return this.application(a.guild,id);

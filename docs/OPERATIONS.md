@@ -4,9 +4,13 @@
 
 ### Karakter adi ve Discord hesabi
 
-Basvuru kanalinda **Psikolog Basvurusu** veya **Resepsiyon Basvurusu** butonu
-secilir. Gorev forma yazilmaz. Basarili gonderimde aday BAS kodunu gorur ve yonetim
-kanalina bir basvuru karti gider. BAS kodu gorunmuyorsa kayit olusmamistir;
+Basvuru kanalinda **Psikolog**, **Resepsiyon** veya **Finans ve IK** basvuru butonu
+secilir. Gorev forma yazilmaz. Basarili gonderimde aday BAS kodunu ve kendisine
+ozel sinav thread'ini gorur; basvuru-takip kanalina kart gider. Resepsiyon sinavi
+5, psikolog ve finans/IK sinavi 10 sorudur. Her soru icin 60 saniye verilir;
+sure asimi yanlis sayilir. Puan ve yanlis cevaplar yonetim kartinda gorunur;
+ise alim karari otomatik verilmez. Sinav bitmeden onay yapilamaz.
+BAS kodu gorunmuyorsa kayit olusmamistir;
 yonetim kanalinda da kart beklenmez. Bu durumda formdaki hatayi duzeltip yeniden
 gondermek gerekir.
 

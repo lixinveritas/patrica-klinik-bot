@@ -8,6 +8,7 @@ import { buttons, card, forms, modal } from './ui.js';
 import { deliver, auditBatches, recordHtml, DeliveryUncertain } from './delivery.js';
 import { downloadEvidence } from './evidence.js';
 import {Personnel} from './personnel.js';
+import { jobName, questions, type ApplicationJob } from './application-questions.js';
 
 type Supported=ChatInputCommandInteraction;
 export class ClinicBot {
@@ -35,7 +36,7 @@ export class ClinicBot {
       const rows=this.store.all<Appointment>(`SELECT * FROM appointments WHERE guild=? AND state IN ('scheduled','needs_review') ${all?'':'AND staff=?'} ORDER BY starts LIMIT 11 OFFSET ?`,...all?[a.guild,page*10]:[a.guild,a.id,page*10]);
       more=rows.length>10;lines=rows.slice(0,10).map(r=>`${code('RD',r.id)} | ${code('PK',r.case_id)} | ${formatTime(r.starts)} | ${r.state}`);
     } else if(kind==='applications') {
-      requireJob(a,'manager');const rows=this.store.all<Application>("SELECT * FROM applications WHERE guild=? ORDER BY id DESC LIMIT 11 OFFSET ?",a.guild,page*10);
+      requireJob(a,'manager','finance');const rows=this.store.all<Application>("SELECT * FROM applications WHERE guild=? ORDER BY id DESC LIMIT 11 OFFSET ?",a.guild,page*10);
       more=rows.length>10;lines=rows.slice(0,10).map(r=>`${code('BAS',r.id)} | ${visible(r.name)} | ${r.state} | Yetki: ${this.store.resource(a.guild,`appapplied:${r.id}`)??'Atanmadi'}`);
     } else {
       requireJob(a,'finance');const rows=this.store.all<Cash>("SELECT * FROM cash WHERE guild=? AND state='pending' ORDER BY id LIMIT 11 OFFSET ?",a.guild,page*10);
@@ -75,6 +76,7 @@ export class ClinicBot {
             if(!this.store.resource(guild.id,`appapplied:${id}`)){await this.syncMember(guild,row.user,row.job as RoleKey);this.store.setResource(guild.id,`appapplied:${id}`,'done');}
           });
           await this.publishApplication(guild,row);
+          if(['pending','interview'].includes(row.state))await this.publishApplicationQuestion(guild,row);
         } else if(job.kind==='case')await this.exclusive(`case:${id}`,()=>this.ensureCaseChannel(guild,this.store.case(system,id)));
         else if(job.kind==='visit')await this.publishVisit(guild,id);
         else if(job.kind==='appointment') {
@@ -193,11 +195,45 @@ export class ClinicBot {
   async publishApplication(guild:Guild,row:Application) {
     const channel=await textChannel(guild,this.store,'applications');
     const nameState=this.store.resource(guild.id,`nameapplied:${row.user}`);
-    const payload={embeds:[card(`${code('BAS',row.id)} | ${row.state}`,`Karakter: ${visible(row.name)}\nDiscord ID: ${row.user}\nGorev: ${row.job}\nYetki: ${row.state==='approved'?(this.store.resource(guild.id,`appapplied:${row.id}`)?'Uygulandi':'Atama bekliyor'):'Karar bekliyor'}${row.state==='approved'?`\nDiscord adi: ${nameState==='done'?'Guncellendi':nameState==='manual'?'Elle duzenlenmeli':'Bekliyor'}`:''}\n\n${visible(row.body)}`)],components:buttons(this.store,guild.id,[
+    const set=questions[row.job as ApplicationJob],answers=this.store.applicationAnswers(guild.id,row.id);
+    const score=set?Math.round(100*answers.filter(a=>set[a.question]?.correct===a.choice).length/set.length):0;
+    const wrong=set&&answers.length===set.length?answers.filter(a=>set[a.question]?.correct!==a.choice).map(a=>`S${a.question+1}: ${a.choice<0?'Sure doldu':visible(set[a.question]!.options[a.choice]!)} | Dogru: ${visible(set[a.question]!.options[set[a.question]!.correct]!)}`).join('\n'):'';
+    const exam=set?`\nSinav: ${answers.length}/${set.length}${answers.length===set.length?` | Not: ${score}/100\nYanlislar: ${wrong||'Yok'}`:''}`:'';
+    const payload={embeds:[card(`${code('BAS',row.id)} | ${row.state}`,`Karakter: ${visible(row.name)}\nDiscord ID: ${row.user}\nGorev: ${jobName[row.job as ApplicationJob]??row.job}${exam}\nYetki: ${row.state==='approved'?(this.store.resource(guild.id,`appapplied:${row.id}`)?'Uygulandi':'Atama bekliyor'):'Karar bekliyor'}${row.state==='approved'?`\nDiscord adi: ${nameState==='done'?'Guncellendi':nameState==='manual'?'Elle duzenlenmeli':'Bekliyor'}`:''}\n\n${visible(row.body)}`.slice(0,4000))],components:buttons(this.store,guild.id,[
       [`appinterview:${row.id}`,'Gorusmeye Cagir'],[`appapprove:${row.id}`,'Onayla'],[`appreject:${row.id}`,'Reddet']
     ]),allowedMentions:{parse:[] as []}};
     await deliver(this.store,guild.id,`appmsg:${row.id}`,channel,payload);
   }
+  async ensureApplicationThread(guild:Guild,row:Application):Promise<ThreadChannel> {
+    const parent=await textChannel(guild,this.store,'apply'),key=`appthread:${row.id}`;
+    const saved=this.store.resource(guild.id,key);let thread=saved?await guild.channels.fetch(saved).catch(()=>null):null;
+    if(!thread){
+      await parent.threads.fetchActive();const active=parent.threads.cache.filter(t=>t.type===ChannelType.PrivateThread&&t.name===`basvuru-${row.id}-${row.user}`);
+      const archived=await parent.threads.fetchArchived({type:'private',limit:100});const matches=[...active.values(),...archived.threads.values()].filter(t=>t.type===ChannelType.PrivateThread&&t.name===`basvuru-${row.id}-${row.user}`);
+      if(matches.length>1||(!matches.length&&archived.hasMore))throw new DeliveryUncertain();
+      thread=matches[0]??null;
+    }
+    if(!thread){
+      const marker=`appthread-start:${row.id}`;if(this.store.resource(guild.id,marker))throw new DeliveryUncertain();
+      this.store.setResource(guild.id,marker,String(Date.now()));
+      thread=await parent.threads.create({name:`basvuru-${row.id}-${row.user}`,type:ChannelType.PrivateThread,invitable:false,autoArchiveDuration:1440,reason:'Patrica aday sinavi'});
+    }
+    if(thread.type!==ChannelType.PrivateThread||thread.parentId!==parent.id)throw new UserError('Basvuru thread eslesmiyor.');
+    this.store.tx(()=>{this.store.setResource(guild.id,key,thread.id);this.store.run('DELETE FROM resources WHERE guild=? AND key=?',guild.id,`appthread-start:${row.id}`);});
+    if(thread.archived)await thread.setArchived(false);if(thread.locked)await thread.setLocked(false);if(thread.invitable)await thread.setInvitable(false);
+    await thread.members.add(row.user);return thread;
+  }
+  async publishApplicationQuestion(guild:Guild,row:Application) {
+    const set=questions[row.job as ApplicationJob];if(!set)return;
+    const answers=this.store.applicationAnswers(guild.id,row.id),thread=await this.exclusive(`appthread:${row.id}`,()=>this.ensureApplicationThread(guild,row));
+    if(answers.length===set.length){await deliver(this.store,guild.id,`quizdone:${row.id}`,thread,{content:`${code('BAS',row.id)} | Sinav tamamlandi. Yonetim basvurunu inceleyecek.`});return;}
+    const index=answers.length,q=set[index]!;
+    const deadline=this.store.quizDeadline(guild.id,row.id);
+    if(deadline?.question===index&&deadline.deadline<=Date.now())return;
+    const message=await deliver(this.store,guild.id,`quizmsg:${row.id}:${index}`,thread,{embeds:[card(`${code('BAS',row.id)} | Soru ${index+1}/${set.length}`,`${q.prompt}\n\n${q.options.map((option,n)=>`${'ABCD'[n]}. ${option}`).join('\n')}\n\nSeviye: ${q.level} | Sure: 60 saniye`)],components:buttons(this.store,guild.id,q.options.map((_option,n)=>[`quiz:${row.id}:${index}:${n}`,`${'ABCD'[n]}`]))});
+    if(message)this.store.startQuestion(guild.id,row.id,index,message.createdTimestamp+60_000);
+  }
+  async quizTick() {const guild=this.client.guilds.cache.get(this.cfg.guild);if(!guild)return;const count=this.store.expireQuestions(guild.id);if(count)await this.processQueue(guild);}
   async handle(i:Interaction) {
     if(!i.isChatInputCommand()&&!i.isButton()&&!i.isModalSubmit())return;
     if(!i.guild||i.guildId!==this.cfg.guild)return;
@@ -213,6 +249,14 @@ export class ClinicBot {
       }
       const [action,arg,choice]=i.customId.slice(3).split(':');if(!action)throw new UserError('Islem gecersiz.');
       if(i.isButton()) {
+        if(action==='quiz') {
+          const id=Number(arg),index=Number(choice),selected=Number(i.customId.split(':')[4]);
+          if(!Number.isSafeInteger(id)||id<1||!Number.isSafeInteger(index)||!Number.isSafeInteger(selected))throw new UserError('Soru gecersiz.');
+          if(this.store.resource(a.guild,`appthread:${id}`)!==i.channelId)throw new UserError('Cevap yalniz kendi basvuru alaninda verilir.');
+          const result=this.store.answerApplication(a,id,index,selected,i.id);
+          if(!result.already){await this.publishApplicationQuestion(i.guild!,this.store.application(a.guild,id));await this.publishApplication(i.guild!,this.store.application(a.guild,id));}
+          await i.editReply(result.already?'Bu soru zaten yanitlandi.':result.timedOut?'60 saniye doldu; bu soru yanlis sayildi.':'Cevabin kaydedildi.');return;
+        }
         if(action==='setup') {
           if(!this.cfg.owners.includes(a.id))throw new UserError('Kurulum yalniz bot sahibine acik.');
             await this.exclusive('setup',()=>setup(i.guild!,this.store,a));
@@ -222,14 +266,14 @@ export class ClinicBot {
         if(forms[action]) {
           if(action==='apply'){
             if(a.jobs.length)throw new UserError('Zaten personelsin.');
-            if(!arg){await i.reply({content:'Basvuracagin gorevi sec.',components:buttons(this.store,a.guild,[['apply:psychologist','Psikolog'],['apply:reception','Resepsiyon']]),flags:MessageFlags.Ephemeral});return;}
-            if(!['psychologist','reception'].includes(arg))throw new UserError('Gorev secimi gecersiz.');
+            if(!arg){await i.reply({content:'Basvuracagin gorevi sec.',components:buttons(this.store,a.guild,[['apply:psychologist','Psikolog'],['apply:reception','Resepsiyon'],['apply:finance','Finans ve IK']]),flags:MessageFlags.Ephemeral});return;}
+            if(!Object.hasOwn(questions,arg))throw new UserError('Gorev secimi gecersiz.');
           }
           else if(action==='case'||action==='book')requireJob(a,'reception','psychologist');
           else if(action==='visit')requireJob(a,'psychologist');
           else if(action==='refund')requireJob(a,'finance');
           else requireJob(a,'finance','psychologist','reception');
-          const form=forms[action]!;await i.showModal(modal(action==='apply'?'form:apply:'+arg:'form:'+action,action==='apply'?(arg==='psychologist'?'Psikolog Basvurusu':'Resepsiyon Basvurusu'):form.title,form.fields));return;
+          const form=forms[action]!;await i.showModal(modal(action==='apply'?'form:apply:'+arg:'form:'+action,action==='apply'?`${jobName[arg as ApplicationJob]} Basvurusu`:form.title,form.fields));return;
         }
         if(action.startsWith('cashapprove')||action.startsWith('cashreject')||action.startsWith('appapprove')||action.startsWith('appreject')||action.startsWith('appinterview')) {
           if(action.startsWith('cash'))requireJob(a,'finance');else requireJob(a,'manager');
@@ -243,7 +287,9 @@ export class ClinicBot {
         }
         if(action==='applicationstatus') {
           const row=this.store.get<Application>('SELECT * FROM applications WHERE guild=? AND user=? ORDER BY id DESC LIMIT 1',a.guild,a.id);
-          await i.editReply(row?`${code('BAS',row.id)}: ${row.state}`:'Henuz kaydedilmis basvurun yok. Psikolog veya Resepsiyon Basvurusu butonunu kullan.');return;
+          if(row&&['pending','interview'].includes(row.state))await this.publishApplicationQuestion(i.guild!,row).catch(()=>{});
+          const thread=row?this.store.resource(a.guild,`appthread:${row.id}`):undefined;
+          await i.editReply(row?`${code('BAS',row.id)}: ${row.state}${thread?` | Sinav alani: <#${thread}>`:' | Sinav alani acilamadi; BAS kodunu yonetime bildir.'}`:'Henuz kaydedilmis basvurun yok. Gorev butonlarindan birini kullan.');return;
         }
         if(action==='agenda') {
           requireJob(a,'psychologist','reception','finance');
@@ -294,10 +340,11 @@ export class ClinicBot {
       if(action!=='form'||!arg)throw new UserError('Form taninmiyor.');
       if(arg==='apply') {
         const job=choice??get('job').trim().toLowerCase();const mapped=job==='psikolog'?'psychologist':job==='resepsiyon'?'reception':job;
-        if(!['psychologist','reception'].includes(mapped))throw new UserError('Gorev secimi gecersiz. Basvuru kanalindaki Psikolog veya Resepsiyon butonunu kullan.');
+        if(!Object.hasOwn(questions,mapped))throw new UserError('Gorev secimi gecersiz. Basvuru kanalindaki gorev butonunu kullan.');
         const row=this.store.apply(a,get('name'),mapped,`IC: ${get('ic')}\nOOC: ${get('ooc')}\nSenaryo: ${get('scenario')}`,i.id);
         const sent=await this.publishApplication(i.guild,row).then(()=>true,()=>false);
-        await i.editReply(`${code('BAS',row.id)} basvurun kaydedildi.${sent?'':' Yonetim paneline bildirim gidemedi; tekrar basvurma.'}`);return;
+        const thread=await this.publishApplicationQuestion(i.guild,row).then(()=>this.store.resource(a.guild,`appthread:${row.id}`),()=>undefined);
+        await i.editReply(`${code('BAS',row.id)} basvurun kaydedildi.${thread?` Sinav alani: <#${thread}>`:' Sinav alani acilamadi; tekrar basvurma, yonetime BAS kodunu bildir.'}${sent?'':' Yonetim karti gecikti; tekrar basvurma.'}`);return;
       }
       if(arg==='case') {
         const owner=snowflake(get('owner'));const target=await this.actor(i.guild,owner);requireJob(target,'psychologist');
@@ -341,7 +388,7 @@ export class ClinicBot {
     const sub=i.options.getSubcommand();
     if(await this.personnel.command(i,a))return;
     if(sub==='ara'||sub==='seanslar'||sub==='bekleyenler') {await this.list(i,a,sub==='ara'?'cases':sub==='seanslar'?'visits':'pendingpage',(i.options.getInteger('sayfa')??1)-1,i.options.getString('isim')??'');return;}
-    if(sub==='tarifeler') {requireJob(a,'psychologist','reception','finance');await i.editReply(['ilk','takip','cift'].map(k=>`${k}: ${formatMoney(this.store.price(a.guild,k as 'ilk'|'takip'|'cift'))}`).join('\n'));return;}
+    if(sub==='tarifeler') {requireJob(a,'psychologist','reception','finance');await i.editReply(`Patrica Klinik | Guncel seans ucretleri\n\nIlk gorusme: ${formatMoney(this.store.price(a.guild,'ilk'))} | Danisanin bu dosyadaki ilk bireysel gorusmesi.\nTakip gorusmesi: ${formatMoney(this.store.price(a.guild,'takip'))} | Ilk gorusmeden sonraki bireysel gorusmeler.\nCift gorusmesi: ${formatMoney(this.store.price(a.guild,'cift'))} | Iki kisinin birlikte katildigi tek gorusmenin toplam ucreti; kisi basi degil.\n\nRandevu olusturmak ucret yazmaz. Ucret seans kaydedilince kesinlesir; kasa ancak tahsilat kaniti dogrulanip onaylaninca degisir.`);return;}
     if(sub==='tarife') {this.store.tariff(a,service(i.options.getString('hizmet',true)),i.options.getInteger('tutar',true));await i.editReply('Yeni tarife kaydedildi. Eski seans tutarlari korundu.');return;}
     if(sub==='uzlastir') {const r=this.store.reconcile(a,i.options.getInteger('bakiye',true),i.options.getString('not',true),i.id);await i.editReply(`UZ-${r.id} | Defter: ${formatMoney(r.expected)} | Gozlenen: ${formatMoney(r.observed)} | Fark: ${formatMoney(r.difference)}. Defter degistirilmedi.`);return;}
     if(sub==='teslim') {this.store.receive(a,numberCode(i.options.getString('kod',true),'FIN'));await i.editReply('Kasa teslimi kaydedildi. Defter bakiyesi degismedi.');return;}
@@ -375,7 +422,7 @@ export class ClinicBot {
       await i.editReply('Yokluk dogrulaman kaydedildi; bildirim yeniden kuyruga alindi.');return;
     }
     if(sub==='basvurular') {
-      requireJob(a,'manager');
+      requireJob(a,'manager','finance');
       const page=(i.options.getInteger('sayfa')??1)-1;
       const rows=this.store.all<Application>('SELECT * FROM applications WHERE guild=? ORDER BY id DESC LIMIT 10 OFFSET ?',a.guild,page*10);
       for(const row of rows)if(row.state!=='approved'||!this.store.resource(a.guild,`appapplied:${row.id}`))await this.publishApplication(i.guild,row);

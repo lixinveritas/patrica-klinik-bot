@@ -42,7 +42,7 @@ export function financePanel(s:Store,g:string) {
   return {...panelVisual('finance',card('Patrica | Finans','Bekleyen bildirimler kasaya dahil degildir. Onay vermeden once oyun ici para hareketini eslestir.')),components:buttons(s,g,[['summary','Kasa Ozeti','receipt'],['pending','Bekleyen Kayitlar','notes'],['expense','Gider Bildir','receipt'],['refund','Iade Talebi','receipt'],['export','Hesap Dokumu','folder']])};
 }
 export function applicationPanel(s:Store,g:string) {
-  return {...panelVisual('apply',card('Patrica | Personel Basvurusu','Basvuracagin gorevi asagidaki butondan sec. Formda karakterinin adini ve soyadini, IC ve OOC bilgilerini ayri yaz. Onaylanirsa karakter adin personel dosyana kaydedilir.')),components:buttons(s,g,[['apply:psychologist','Psikolog Basvurusu'],['apply:reception','Resepsiyon Basvurusu'],['applicationstatus','Basvuru Durumum']])};
+  return {...panelVisual('apply',card('Patrica | Personel Basvurusu','Basvuracagin gorevi sec. Formdan sonra sana ozel sinav alani acilir. Her soruyu 60 saniyede cevapla; sure dolan soru yanlis sayilir. Basvurun ve sinav sonucun yonetim tarafindan incelenir.')),components:buttons(s,g,[['apply:psychologist','Psikolog Basvurusu'],['apply:reception','Resepsiyon Basvurusu'],['apply:finance','Finans ve IK Basvurusu'],['applicationstatus','Basvuru Durumum']])};
 }
 export const forms: Record<string,{title:string;fields:Field[]}>={
   apply:{title:'Personel Basvurusu',fields:[{id:'name',label:'Karakter adi ve soyadi',max:32,placeholder:'Mira Patrica'},{id:'ic',label:'IC: iletisim, egitim ve is gecmisi',long:true,max:600},{id:'ooc',label:'OOC: RP deneyimi ve musaitlik',long:true,max:600},{id:'scenario',label:'Danisan gizliligi nasil korunur?',long:true,max:600}]},

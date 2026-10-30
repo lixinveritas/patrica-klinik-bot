@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Actor, characterName, localTime, money, service } from '../src/domain.js';
 import { Store } from '../src/store.js';
+import { questions } from '../src/application-questions.js';
 
 const psy:Actor={id:'111111111111111111',guild:'999999999999999999',jobs:['psychologist']};
 const boss:Actor={id:'222222222222222222',guild:psy.guild,jobs:['manager']};
@@ -59,7 +60,23 @@ test('Istanbul saati ve takvim dogrulamasi',()=>{
  assert.equal(new Date(localTime('2026-11-02 21:30')).toISOString(),'2026-11-02T18:30:00.000Z');assert.throws(()=>localTime('2026-02-30 21:30'));assert.throws(()=>localTime('yarin aksam'));
 });
 test('tek acik basvuru ve yetkili karar',()=>{
- const s=new Store(':memory:');try{const r=s.apply(outsider,'Kurgu Personel','psychologist','IC egitim gecmisi, OOC deneyim ve senaryo cevabi.','b1');assert.throws(()=>s.apply(outsider,'Kurgu Personel','psychologist','Yeni basvuru icin yeterli aciklama.','b2'),/Bekleyen/);assert.throws(()=>s.decideApplication(reception,r.id,'approved','Uygun goruldu'),/yetkin/);s.decideApplication(boss,r.id,'interview','Gorusmeye uygun');s.decideApplication(boss,r.id,'approved','Gorusme tamamlandi');assert.equal(s.resource(outsider.guild,`staffname:${outsider.id}`),'Kurgu Personel');assert.equal(s.resource(outsider.guild,`nameapplied:${outsider.id}`),'pending');assert.throws(()=>s.decideApplication(boss,r.id,'rejected','Sonradan degistir'),/sonuclanmis/);}finally{s.close();}
+ const s=new Store(':memory:');try{const r=s.apply(outsider,'Kurgu Personel','psychologist','IC egitim gecmisi, OOC deneyim ve senaryo cevabi.','b1');assert.throws(()=>s.apply(outsider,'Kurgu Personel','psychologist','Yeni basvuru icin yeterli aciklama.','b2'),/Bekleyen/);assert.throws(()=>s.decideApplication(reception,r.id,'approved','Uygun goruldu'),/yetkin/);s.decideApplication(boss,r.id,'interview','Gorusmeye uygun');assert.throws(()=>s.decideApplication(boss,r.id,'approved','Sinav eksik'),/Sinav tamamlanmadan/);for(const [index,q] of questions.psychologist.entries()){s.startQuestion(outsider.guild,r.id,index,Date.now()+60000);s.answerApplication(outsider,r.id,index,q.correct,`a${index}`);}s.decideApplication(boss,r.id,'approved','Gorusme tamamlandi');assert.equal(s.resource(outsider.guild,`staffname:${outsider.id}`),'Kurgu Personel');assert.equal(s.resource(outsider.guild,`nameapplied:${outsider.id}`),'pending');assert.throws(()=>s.decideApplication(boss,r.id,'rejected','Sonradan degistir'),/sonuclanmis/);}finally{s.close();}
+});
+test('sinav sureleri kalici, cevap tek seferlik ve sure asimi yanlis sayilir',()=>{
+ const s=new Store(':memory:');try{
+  assert.deepEqual(Object.fromEntries(Object.entries(questions).map(([job,set])=>[job,set.length])),{reception:5,psychologist:10,finance:10});
+  for(const [job,set] of Object.entries(questions))assert.deepEqual(set.reduce((n,q)=>(n[q.level]=(n[q.level]??0)+1,n),{} as Record<string,number>),job==='reception'?{Kolay:2,Orta:2,Zor:1}:{Kolay:5,Orta:3,Zor:2});
+  const r=s.apply(outsider,'Kurgu Personel','reception','IC egitim gecmisi, OOC deneyim ve senaryo cevabi.','quiz1');
+  const future=Date.now()+60000;s.startQuestion(outsider.guild,r.id,0,future);assert.equal(s.startQuestion(outsider.guild,r.id,0,future+60000),future);
+  assert.throws(()=>s.answerApplication(reception,r.id,0,0,'wrong-user'),/sana ait/);
+  assert.throws(()=>s.answerApplication(outsider,r.id,1,0,'skip'),/Siradaki/);
+  assert.equal(s.answerApplication(outsider,r.id,0,questions.reception[0]!.correct,'answer1').count,1);
+  assert.equal(s.answerApplication(outsider,r.id,0,0,'answer-again').already,true);
+  s.startQuestion(outsider.guild,r.id,1,Date.now()-1);s.expireQuestions(outsider.guild);assert.deepEqual(s.applicationAnswers(outsider.guild,r.id).map(a=>a.choice),[questions.reception[0]!.correct,-1]);
+  assert.equal(s.answerApplication(outsider,r.id,1,0,'late').already,true);
+  s.startQuestion(outsider.guild,r.id,2,Date.now()-1);assert.equal(s.answerApplication(outsider,r.id,2,0,'late2').timedOut,true);
+  assert.equal(s.applicationAnswers(outsider.guild,r.id)[2]!.choice,-1);
+ }finally{s.close();}
 });
 test('karakter adi ad soyad ister ve Discord takma adi sinirina uyar',()=>{
  assert.equal(characterName('  Mira   Patrica  '),'Mira Patrica');

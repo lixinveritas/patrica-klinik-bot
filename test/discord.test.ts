@@ -7,6 +7,7 @@ import { fetchExistingMessage, overwrites, publishRoadmap, roles, setup } from '
 import { forms, modal, applicationPanel, staffPanel, financePanel } from '../src/ui.js';
 import { command } from '../src/commands.js';
 import { roadmapMessages } from '../src/roadmap.js';
+import { questions } from '../src/application-questions.js';
 const gid='999999999999999999';const uid='111111111111111111';const boss='222222222222222222';
 function fixture(){
  const s=new Store(':memory:');for(const [i,k] of Object.keys(roles).entries())s.setResource(gid,`role:${k}`,String(400000000000000000n+BigInt(i)));
@@ -66,6 +67,24 @@ test('gorev butonundan basvuru kaydedilir ve yonetim karti tek kez gonderilir',a
   assert.equal(s.all('SELECT id FROM applications').length,1);assert.equal(s.application(gid,1).job,'psychologist');assert.equal(sent.length,1);
   assert.equal(s.resource(gid,'appmsg:1'),'444444444444444444');assert.match(String(submit.replies[0]),/BAS-0001 basvurun kaydedildi/);
   const reception=interaction(guild,'button','apply:reception');Object.assign(reception.i,{member:{roles:[]}});await bot.handle(reception.i);assert.equal((reception.replies[0] as {toJSON:()=>any}).toJSON().custom_id,'pk:form:apply:reception');
+  const finance=interaction(guild,'button','apply:finance');Object.assign(finance.i,{member:{roles:[]}});await bot.handle(finance.i);assert.equal((finance.replies[0] as {toJSON:()=>any}).toJSON().custom_id,'pk:form:apply:finance');
+ }finally{s.close();}
+});
+test('basvuru sinavi ozel thread acip sureli soruyu tek kez kaydeder',async()=>{
+ const {s,guild,bot}=fixture();try{
+  const row=s.apply({id:uid,guild:gid,jobs:[]},'Asuka Shindo','finance','IC is deneyimi, OOC oyun deneyimi ve gizlilik senaryosu.','new');
+  const messages=new Collection<string,any>();let created=0,added='';
+  const thread:any={id:'555555555555555555',type:ChannelType.PrivateThread,parentId:'333333333333333333',archived:false,locked:false,invitable:false,members:{add:async(id:string)=>{added=id;}},messages:{fetch:async(id:string)=>messages.get(id)},send:async(payload:any)=>{const msg={id:String(600000000000000000n+BigInt(messages.size)),createdTimestamp:Date.now(),payload,edit:async(p:any)=>{msg.payload=p;}};messages.set(msg.id,msg);return msg;}};
+  const parent:any={id:thread.parentId,type:ChannelType.GuildText,threads:{cache:new Collection(),fetchActive:async()=>{},fetchArchived:async()=>({threads:new Collection(),hasMore:false}),create:async(o:any)=>{created++;thread.name=o.name;return thread;}}};
+  const managementMessages=new Collection<string,any>();const management:any={id:'444444444444444444',type:ChannelType.GuildText,messages:{fetch:async(id:string)=>managementMessages.get(id)},send:async(payload:any)=>{const msg={id:'777777777777777778',payload,edit:async(p:any)=>{msg.payload=p;}};managementMessages.set(msg.id,msg);return msg;}};
+  s.setResource(gid,'channel:apply',parent.id);s.setResource(gid,'channel:applications',management.id);
+  Object.assign(guild,{channels:{fetch:async(id:string)=>id===parent.id?parent:id===management.id?management:thread},members:{fetch:async()=>({roles:{cache:new Collection()}})}});
+  await bot.publishApplicationQuestion(guild,row);assert.equal(created,1);assert.equal(added,uid);assert.equal(messages.size,1);assert.equal(s.quizDeadline(gid,row.id)?.question,0);
+  await bot.publishApplicationQuestion(guild,row);assert.equal(created,1);assert.equal(messages.size,1);
+  const answer=interaction(guild,'button',`quiz:${row.id}:0:${questions.finance[0]!.correct}`);Object.assign(answer.i,{channelId:thread.id,member:{roles:[]}});await bot.handle(answer.i);
+  assert.equal(s.applicationAnswers(gid,row.id).length,1);assert.equal(messages.size,2);assert.match(String(answer.replies[0]),/kaydedildi/);
+  const stale=interaction(guild,'button',`quiz:${row.id}:0:0`);Object.assign(stale.i,{channelId:thread.id,member:{roles:[]}});await bot.handle(stale.i);assert.equal(s.applicationAnswers(gid,row.id).length,1);
+  const forged=interaction(guild,'button',`quiz:${row.id}:1:0`);Object.assign(forged.i,{channelId:management.id,member:{roles:[]}});await bot.handle(forged.i);assert.match(JSON.stringify(forged.replies),/yalniz kendi basvuru/);
  }finally{s.close();}
 });
 function interaction(guild:Guild,kind:'button'|'modal',id:string,fields:Record<string,string>={}) {
