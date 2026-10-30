@@ -24,6 +24,7 @@ client.once(Events.ClientReady,async()=>{
   for(const key of ['apply','staff','finance','welcome','rules','personnel']) {
    const ch=await textChannel(guild,s,key);const msg=await ch.messages.fetch(s.resource(guild.id,`panel:${key}`)!);
    assert.equal(msg.author.id,c.app);assert.ok(msg.embeds.length);panels++;
+   if(key==='apply')assert.deepEqual(msg.components.flatMap(row=>'components' in row?row.components.map(button=>'customId' in button?button.customId:undefined):[]),['pk:apply:psychologist','pk:apply:reception','pk:applicationstatus']);
   }
   const commands=await guild.commands.fetch({withLocalizations:false});const klinik=commands.find(x=>x.applicationId===c.app&&x.name==='klinik');assert.ok(klinik);
   for(const sub of ['ara','seanslar','uzlastir','teslim','tarife','saglik','bildirim','tekrar','personelim','personel-kaydi','personel-isleri','personel-kurtar'])assert.ok(klinik.options.some(x=>x.name===sub));
