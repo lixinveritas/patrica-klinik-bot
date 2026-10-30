@@ -24,7 +24,11 @@ client.once(Events.ClientReady,async ready=>{
   if(ready.user.id!==c.app){console.error('Bot tokeni APPLICATION_ID ile eslesmiyor.');stop();return;}
   console.log('Patrica bot baglandi. Kurulum icin hedef sunucuda /klinik kur kullan.');
   if(s.resource(c.guild,'channel:people'))await bot.personnel.bootstrap(await ready.guilds.fetch(c.guild)).catch(()=>console.error('Mevcut personel eslestirmesi tamamlanamadi.'));
-  if(s.resource(c.guild,'channel:apply'))for(const row of s.all<{id:number}>("SELECT id FROM applications WHERE guild=? AND state IN ('pending','interview')",c.guild))s.enqueue(c.guild,'application',String(row.id));
+  if(s.resource(c.guild,'channel:apply')){
+    const guild=await ready.guilds.fetch(c.guild);
+    await bot.syncApplicationOwners(guild).catch(()=>console.error('Basvuru thread yonetim erisimi yenilenemedi.'));
+    for(const row of s.all<{id:number}>('SELECT id FROM applications WHERE guild=?',c.guild))s.enqueue(c.guild,'application',String(row.id));
+  }
   let ticking=false;
   const tick=async()=>{if(ticking||stopping)return;ticking=true;try{await bot.tick();}catch{console.error('Bakim veya hatirlatma tamamlanamadi. Kayitlar korundu.');}finally{ticking=false;}};
   timer=setInterval(()=>void tick(),60_000);

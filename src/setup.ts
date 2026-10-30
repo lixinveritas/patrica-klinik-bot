@@ -63,7 +63,7 @@ export async function setup(guild:Guild,s:Store,actor:Actor) {
     ['records','clinic','danisan-dosyalari'],
     ['finance','finance','finans-masasi'],['cash','finance','tahsilat-kayitlari']
   ] as const) {
-    const perms=parent==='entry'?[{id:guild.id,allow:[P.ViewChannel,P.ReadMessageHistory,...(key==='apply'?[P.SendMessagesInThreads]:[])],deny:[P.SendMessages]} as OverwriteResolvable,{id:me.id,allow:[P.ViewChannel,P.SendMessages,P.SendMessagesInThreads,P.ManageChannels,P.ManageThreads,...(key==='apply'?[P.CreatePrivateThreads]:[])]} as OverwriteResolvable]:overwrites(guild,s,parent==='staff'?['staff']:parent==='finance'||key==='applications'?['finance']:parent==='clinic'?['psychologist']:[],undefined,key==='announcements'||key==='people');
+    const perms=parent==='entry'?[{id:guild.id,allow:[P.ViewChannel,P.ReadMessageHistory,...(key==='apply'?[P.SendMessagesInThreads]:[])],deny:[P.SendMessages]} as OverwriteResolvable,{id:me.id,allow:[P.ViewChannel,P.SendMessages,P.SendMessagesInThreads,P.ManageChannels,P.ManageThreads,...(key==='apply'?[P.CreatePrivateThreads]:[])]} as OverwriteResolvable,...(key==='apply'?[{id:s.resource(guild.id,'role:manager')!,allow:[P.ViewChannel,P.ReadMessageHistory,P.ManageThreads,P.SendMessagesInThreads]} as OverwriteResolvable]:[])]:overwrites(guild,s,parent==='staff'?['staff']:parent==='finance'||key==='applications'?['finance']:parent==='clinic'?['psychologist']:[],undefined,key==='announcements'||key==='people');
     const saved=s.resource(guild.id,`channel:${key}`);
     if(saved){const c=await textChannel(guild,s,key);await c.permissionOverwrites.set(perms);if(key==='applications'&&c.name!==name)await c.setName(name);continue;}
     if(guild.channels.cache.some(c=>c?.parentId===categories[parent]&&c.name===name))throw new UserError(`${name} eslesmeyen kanal var; yinelenmedi.`);
@@ -83,7 +83,7 @@ export async function setup(guild:Guild,s:Store,actor:Actor) {
     s.setResource(guild.id,`emoji:${icon}`,emoji.id);
   }
   await publishPanel(guild,s,'apply',applicationPanel(s,guild.id));
-  await publishPanel(guild,s,'applications',{embeds:[card('Basvuru Takip','Psikolog, resepsiyon ve finans/IK basvurulari burada gorunur. Kartta sinav ilerlemesi, not ve yanlis cevaplar guncellenir. Karari yalniz yonetim verir.')],components:buttons(s,guild.id,[['applications:0','Basvurulari Listele']])});
+  await publishPanel(guild,s,'applications',{embeds:[card('Basvuru Takip','Basvuru kartindaki Sinav alani baglantisindan adayin ozel threadine gir. Sinav notu ve cevaplar kartta gorunur; karari yonetim verir. Dosya ve randevu icin #calisma-masasi; finans/IK icin #finans-masasi kullan.')],components:buttons(s,guild.id,[['applications:0','Basvurulari Listele']])});
   await publishPanel(guild,s,'staff',staffPanel(s,guild.id));
   await publishPanel(guild,s,'finance',financePanel(s,guild.id));
   await publishPanel(guild,s,'personnel',{...panelVisual('personnel',card('Personel Isleri','Mazeretleri ve devir notlarini degerlendir. Tutanakta personelin aciklamasini ve karar gerekcesini kaydet. Otomatik ceza veya maas kesintisi yapilmaz.')),components:buttons(s,guild.id,[['hr:incident','Tutanak Ac'],['hr:pending:0','Bekleyen Kayitlar'],['hr:areas','Personel Alanlari']])});

@@ -39,7 +39,7 @@ Henuz personel olmayan kisi **Psikolog**, **Resepsiyon** veya **Finans ve IK** b
 Yonetimin resmi duyurulari. Vardiya, tarife veya calisma duzeni degisirse burada aciklanir.
 
 **${ch('staff','calisma-masasi')}**
-Botun ana kumandasi. Dosya Ac, Randevu, Seans Kaydet, Tahsilat Bildir, Mesai Ac/Kapat ve Randevularim burada.
+Botun ana kumandasi. Resepsiyon, psikolog ve yonetim Dosya Ac ile Randevu butonlarini burada kullanir. Seans notunu yalniz psikolog kaydeder. Tahsilat, mesai ve listeler de burada.
 
 **${ch('chat','personel-iletisim')}**
 Personelle gunluk koordinasyon ve OOC konusma. Seans notlarini veya odeme kanitlarini buraya atma.
@@ -72,6 +72,7 @@ Seans kaydetmek tek basina kasaya para eklemez.
 **/klinik randevu kod:RD-0001 durum:Tamamlandi** kullan. Kisi gelmediyse Gelmedi, vazgectiyse Iptal sec. Karttaki Tamamlandi / Iptal / Gelmedi butonlari ayni mesaji yeniler. Bot kapaliyken gecen randevu kontrol gerekiyor olarak gorunur.`,
 `# Para Islemleri Nasil Yapilir?
 **${ch('finance','finans-masasi')} — finans ve yonetim**
+Finans/IK de buradaki Dosya Ac ve Randevu Ac butonlarini kullanabilir. Klinik notlari sorumlu psikologa ozeldir.
 Kasa Ozeti: onayli gelir, cikis ve kayitli bakiye.
 Bekleyen Kayitlar: henuz onaylanmamis bildirimleri gosterir.
 Gider Bildir: kira, reklam veya personel odemesi gibi bir cikis talebi.
@@ -97,7 +98,7 @@ Sadece odemeyle ilgili satirlari veya kirpilmis ekran goruntusunu ekle.
 Bu bolumdeki kanallari gorememek hata degil; gorevine gore kapali olabilir.
 
 **${ch('applications','basvuru-takip')}**
-Yonetim ve finans/IK rolunun gorebildigi takip kanali. Personel basvurulari, sinav ilerlemesi, not ve yanlis cevaplar burada gorunur. Finans/IK izleyebilir; karari yonetim verir. Karakter adini RP kimligiyle kontrol et; Discord kullanici ID'si hesabi tanir, karakter adi onun yerini tutmaz. Sinav bitince Gorusmeye Cagir, Onayla veya Reddet butonuyla ilerle. Karar gerekcesini yaz. Onay rol atamasini ve ad guncellemesini baslatir. Kartta **Discord adi: Elle duzenlenmeli** yaziyorsa takma adi sunucudan elle degistir. Ozel mesaji kapali adaya bot ulasamayabilir; sonucu kendisine ayrica bildir.
+Yonetim ve finans/IK rolunun gorebildigi takip kanali. Kartta sinav notu, bos sorular ve yanlis cevaplar gorunur; **Sinav alani** baglantisi aday threadini acar. Finans/IK izleyebilir; karari yonetim verir. Karakter adini RP kimligiyle kontrol et; Discord kullanici ID'si hesabi tanir, karakter adi onun yerini tutmaz. Sinav bitince Gorusmeye Cagir, Onayla veya Reddet butonuyla ilerle. Karar gerekcesini yaz. Onay rol atamasini ve ad guncellemesini baslatir. Kartta **Discord adi: Elle duzenlenmeli** yaziyorsa takma adi sunucudan elle degistir. Ozel mesaji kapali adaya bot ulasamayabilir; sonucu kendisine ayrica bildir.
 
 **${ch('index','dosya-indeksi')}**
 Dosya kodu, sorumlu ve durum otomatik guncellenir. Klinik gorusme notlari bu listeye cikmaz.
@@ -121,7 +122,7 @@ Yonetim **/klinik devret** ile dosyayi baska psikologa verir. Gelecekteki randev
 **Ayni kanit kullanilmis:** Ayni dosyayi farkli adla tekrar eklemek yeni odeme sayilmaz. Ilk FIN kaydini kontrol et.
 **Kasa sifir:** Bildirimler onay bekliyor olabilir. Seans veya dosya acmak kasayi arttirmaz.
 **Eski formda dosya alani yok:** Formu kapatip butona tekrar bas.
-**Tarih kabul edilmiyor:** 2026-11-02 21:30 biciminde, Istanbul saatini yaz. Randevu suresi 20/30/45/60 dakika.
+**Tarih kabul edilmiyor:** 2.11 21:30, yarin 21:30 veya 2026-11-02 21:30 yaz. Saat Istanbul saatidir. Randevu suresi 20/30/45/60 dakika.
 
 ## Hizli Arama ve Kontrol
 /klinik ara: isim veya PK koduyla dosyani bul; sayfa secenegiyle ilerle.

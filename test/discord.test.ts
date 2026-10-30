@@ -73,18 +73,41 @@ test('gorev butonundan basvuru kaydedilir ve yonetim karti tek kez gonderilir',a
 test('basvuru sinavi ozel thread acip sureli soruyu tek kez kaydeder',async()=>{
  const {s,guild,bot}=fixture();try{
   const row=s.apply({id:uid,guild:gid,jobs:[]},'Asuka Shindo','finance','IC is deneyimi, OOC oyun deneyimi ve gizlilik senaryosu.','new');
-  const messages=new Collection<string,any>();let created=0,added='';
-  const thread:any={id:'555555555555555555',type:ChannelType.PrivateThread,parentId:'333333333333333333',archived:false,locked:false,invitable:false,members:{add:async(id:string)=>{added=id;}},messages:{fetch:async(id:string)=>messages.get(id)},send:async(payload:any)=>{const msg={id:String(600000000000000000n+BigInt(messages.size)),createdTimestamp:Date.now(),payload,edit:async(p:any)=>{msg.payload=p;}};messages.set(msg.id,msg);return msg;}};
+  const messages=new Collection<string,any>();let created=0;const added:string[]=[];
+  const thread:any={id:'555555555555555555',type:ChannelType.PrivateThread,parentId:'333333333333333333',archived:false,locked:false,invitable:false,members:{add:async(id:string)=>{added.push(id);}},messages:{fetch:async(id:string)=>messages.get(id)},send:async(payload:any)=>{const msg={id:String(600000000000000000n+BigInt(messages.size)),createdTimestamp:Date.now(),payload,edit:async(p:any)=>{msg.payload=p;}};messages.set(msg.id,msg);return msg;}};
   const parent:any={id:thread.parentId,type:ChannelType.GuildText,threads:{cache:new Collection(),fetchActive:async()=>{},fetchArchived:async()=>({threads:new Collection(),hasMore:false}),create:async(o:any)=>{created++;thread.name=o.name;return thread;}}};
   const managementMessages=new Collection<string,any>();const management:any={id:'444444444444444444',type:ChannelType.GuildText,messages:{fetch:async(id:string)=>managementMessages.get(id)},send:async(payload:any)=>{const msg={id:'777777777777777778',payload,edit:async(p:any)=>{msg.payload=p;}};managementMessages.set(msg.id,msg);return msg;}};
   s.setResource(gid,'channel:apply',parent.id);s.setResource(gid,'channel:applications',management.id);
   Object.assign(guild,{channels:{fetch:async(id:string)=>id===parent.id?parent:id===management.id?management:thread},members:{fetch:async()=>({roles:{cache:new Collection()}})}});
-  await bot.publishApplicationQuestion(guild,row);assert.equal(created,1);assert.equal(added,uid);assert.equal(messages.size,1);assert.equal(s.quizDeadline(gid,row.id)?.question,0);
+  await bot.publishApplicationQuestion(guild,row);assert.equal(created,1);assert.deepEqual(added,[uid,boss]);assert.equal(messages.size,1);assert.equal(s.quizDeadline(gid,row.id)?.question,0);
   await bot.publishApplicationQuestion(guild,row);assert.equal(created,1);assert.equal(messages.size,1);
   const answer=interaction(guild,'button',`quiz:${row.id}:0:${questions.finance[0]!.correct}`);Object.assign(answer.i,{channelId:thread.id,member:{roles:[]}});await bot.handle(answer.i);
   assert.equal(s.applicationAnswers(gid,row.id).length,1);assert.equal(messages.size,2);assert.match(String(answer.replies[0]),/kaydedildi/);
   const stale=interaction(guild,'button',`quiz:${row.id}:0:0`);Object.assign(stale.i,{channelId:thread.id,member:{roles:[]}});await bot.handle(stale.i);assert.equal(s.applicationAnswers(gid,row.id).length,1);
   const forged=interaction(guild,'button',`quiz:${row.id}:1:0`);Object.assign(forged.i,{channelId:management.id,member:{roles:[]}});await bot.handle(forged.i);assert.match(JSON.stringify(forged.replies),/yalniz kendi basvuru/);
+  const card=managementMessages.values().next().value.payload.embeds[0].toJSON();assert.match(card.description,/Gecici not: \d+\/100/);assert.match(card.description,/Sinav alani: <#555555555555555555>/);
+  await bot.syncApplicationOwners(guild);assert.equal(added.at(-1),boss);
+ }finally{s.close();}
+});
+test('eksik sinav reddedilince not, bos soru ve thread baglantisi gorunur; DM kart olarak gider',async()=>{
+ const {s,guild,bot}=fixture();try{
+  const applicant={id:uid,guild:gid,jobs:[]};const row=s.apply(applicant,'Asuka Shindo','finance','IC deneyim, OOC uygunluk ve ornek senaryo.','apply');
+  for(let n=0;n<9;n++){s.startQuestion(gid,row.id,n,Date.now()+60000);s.answerApplication(applicant,row.id,n,questions.finance[n]!.correct,`answer-${n}`);}
+  s.setResource(gid,`appthread:${row.id}`,'555555555555555555');
+  const cardMessages:any[]=[];const sent:any={id:'666666666666666666',edit:async(p:any)=>{cardMessages.push(p);}};
+  const channel:any={id:'444444444444444444',type:ChannelType.GuildText,messages:{fetch:async()=>sent},send:async(p:any)=>{cardMessages.push(p);return sent;}};
+  s.setResource(gid,'channel:applications',channel.id);Object.assign(guild,{channels:{fetch:async()=>channel}});
+  const dms:any[]=[];Object.assign(bot.client,{users:{fetch:async()=>({send:async(p:any)=>{dms.push(p);}})}});
+  const decision=interaction(guild,'modal',`decision:appreject:${row.id}`,{reason:'Bu donem icin uygun gorulmedi.'});Object.assign(decision.i,{user:{id:boss},member:{roles:[s.resource(gid,'role:manager')]}});
+  await bot.handle(decision.i);
+  const description=cardMessages[0].embeds[0].toJSON().description;
+  assert.match(description,/Sinav: 9\/10 \| Not: 90\/100 \| 1 bos soru/);
+  assert.match(description,/Cevaplanmayan: S10/);
+  assert.match(description,/Sinav alani: <#555555555555555555>/);
+  assert.equal(dms.length,1);assert.equal(dms[0].content,undefined);
+  assert.match(dms[0].embeds[0].toJSON().title,/kabul edilmedi/);
+  const repeated=interaction(guild,'modal',`decision:appreject:${row.id}`,{reason:'Bu donem icin uygun gorulmedi.'});Object.assign(repeated.i,{user:{id:boss},member:{roles:[s.resource(gid,'role:manager')]}});
+  await bot.handle(repeated.i);assert.equal(dms.length,1);assert.match(String(repeated.replies[0]),/Basvuru rejected/);
  }finally{s.close();}
 });
 function interaction(guild:Guild,kind:'button'|'modal',id:string,fields:Record<string,string>={}) {

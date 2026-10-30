@@ -74,7 +74,10 @@ kaynaklari ve lisanslari `assets/fonts/` altindadir. `npm run preview:personnel`
 yalniz yerel sentetik onizleme uretir; Discord'a veya canli personele kayit yazmaz.
 
 `calisma-masasi` personelin ana panelidir: dosya, randevu, seans, tahsilat,
-mesai ve listeler. `roadmap` her kanalin ne ise yaradigini anlatir.
+mesai ve listeler. Finans/IK `finans-masasi` panelinden dosya ve randevu da
+acabilir; klinik gorusme notlarini okuyamaz. Tarih icin `2.11 21:30`,
+`yarin 21:30` veya tam `2026-11-02 21:30` kullanilir (Istanbul).
+`roadmap` her kanalin ne ise yaradigini anlatir.
 
 | Islem | Komut veya panel |
 |---|---|

@@ -138,7 +138,7 @@ export class Store {
     return row;
   }
   openCase(a: Actor, name: string, contact: string, owner: string, request: string): CaseRow {
-    requireJob(a,'reception','psychologist');
+    requireJob(a,'reception','psychologist','finance');
     name=line(name,3,80); contact=line(contact,2,80); snowflake(owner);
     if (a.jobs.includes('psychologist') && !a.jobs.includes('manager') && !a.jobs.includes('reception') && owner !== a.id) throw new UserError('Kendi adina dosya acabilirsin.');
     return this.tx(() => {
@@ -298,7 +298,7 @@ export class Store {
     return {...r,...p,unbilled,undelivered};
   }
   book(a: Actor,caseId: number,starts: number,minutes: number,request: string): Appointment {
-    requireJob(a,'reception','psychologist');const c=this.case(a,caseId,false);
+    requireJob(a,'reception','psychologist','finance');const c=this.case(a,caseId,false);
     if(a.jobs.includes('psychologist')&&!a.jobs.includes('manager')&&!a.jobs.includes('reception'))this.case(a,caseId);
     if(c.state!=='active')throw new UserError('Dosya kapali.');
     if(![20,30,45,60].includes(minutes)||!Number.isSafeInteger(starts)||starts<Date.now()||starts>Date.now()+366*86400000)throw new UserError('Gelecek bir tarih ve 20/30/45/60 dakika sec.');

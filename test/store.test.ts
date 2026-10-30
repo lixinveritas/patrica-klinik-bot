@@ -57,7 +57,19 @@ test('randevu cakismasi, sinir saat ve iptal',()=>{
  const {s,c}=fixture();try{const starts=Date.now()+86400000;const r=s.book(reception,c.id,starts,30,'a1');assert.equal(s.book(reception,c.id,starts,30,'a1').id,r.id);assert.throws(()=>s.book(reception,c.id,starts+10*60000,30,'a2'),/randevusu/);s.book(reception,c.id,starts+30*60000,30,'a3');s.appointmentState(reception,r.id,'cancelled');s.book(reception,c.id,starts,30,'a4');assert.throws(()=>s.book(reception,c.id,starts,0,'a5'));}finally{s.close();}
 });
 test('Istanbul saati ve takvim dogrulamasi',()=>{
- assert.equal(new Date(localTime('2026-11-02 21:30')).toISOString(),'2026-11-02T18:30:00.000Z');assert.throws(()=>localTime('2026-02-30 21:30'));assert.throws(()=>localTime('yarin aksam'));
+ assert.equal(new Date(localTime('2026-11-02 21:30')).toISOString(),'2026-11-02T18:30:00.000Z');
+ assert.equal(new Date(localTime('2.11.2026 21:30')).toISOString(),'2026-11-02T18:30:00.000Z');
+ const tomorrow=new Date(Date.now()+10_800_000+86400000).toISOString().slice(0,10);
+ assert.equal(new Date(localTime('yarin 21:30')).toISOString(),new Date(`${tomorrow}T18:30:00.000Z`).toISOString());
+ assert.throws(()=>localTime('31.02 21:30'));assert.throws(()=>localTime('2026-02-30 21:30'));assert.throws(()=>localTime('yarin aksam'));
+});
+test('finans ve IK dosya ile randevu acar ama klinik notlarini goremez',()=>{
+ const s=new Store(':memory:');try{
+  const hr:Actor={id:'333333333333333333',guild:psy.guild,jobs:['finance']};
+  const c=s.openCase(hr,'Deneme Danisan','555',psy.id,'hr-case');
+  assert.equal(s.book(hr,c.id,Date.now()+86400000,30,'hr-book').case_id,c.id);
+  assert.throws(()=>s.case(hr,c.id));
+ }finally{s.close();}
 });
 test('tek acik basvuru ve yetkili karar',()=>{
  const s=new Store(':memory:');try{const r=s.apply(outsider,'Kurgu Personel','psychologist','IC egitim gecmisi, OOC deneyim ve senaryo cevabi.','b1');assert.throws(()=>s.apply(outsider,'Kurgu Personel','psychologist','Yeni basvuru icin yeterli aciklama.','b2'),/Bekleyen/);assert.throws(()=>s.decideApplication(reception,r.id,'approved','Uygun goruldu'),/yetkin/);s.decideApplication(boss,r.id,'interview','Gorusmeye uygun');assert.throws(()=>s.decideApplication(boss,r.id,'approved','Sinav eksik'),/Sinav tamamlanmadan/);for(const [index,q] of questions.psychologist.entries()){s.startQuestion(outsider.guild,r.id,index,Date.now()+60000);s.answerApplication(outsider,r.id,index,q.correct,`a${index}`);}s.decideApplication(boss,r.id,'approved','Gorusme tamamlandi');assert.equal(s.resource(outsider.guild,`staffname:${outsider.id}`),'Kurgu Personel');assert.equal(s.resource(outsider.guild,`nameapplied:${outsider.id}`),'pending');assert.throws(()=>s.decideApplication(boss,r.id,'rejected','Sonradan degistir'),/sonuclanmis/);}finally{s.close();}

@@ -25,8 +25,12 @@ client.once(Events.ClientReady,async()=>{
   for(const key of ['apply','applications','staff','finance','welcome','rules','personnel']) {
    const ch=await textChannel(guild,s,key);const msg=await ch.messages.fetch(s.resource(guild.id,`panel:${key}`)!);
    assert.equal(msg.author.id,c.app);assert.ok(msg.embeds.length);panels++;
-   if(key==='apply')assert.deepEqual(msg.components.flatMap(row=>'components' in row?row.components.map(button=>'customId' in button?button.customId:undefined):[]),['pk:apply:psychologist','pk:apply:reception','pk:apply:finance','pk:applicationstatus']);
+   if(key==='apply'){
+    assert.deepEqual(msg.components.flatMap(row=>'components' in row?row.components.map(button=>'customId' in button?button.customId:undefined):[]),['pk:apply:psychologist','pk:apply:reception','pk:apply:finance','pk:applicationstatus']);
+    assert.equal(ch.permissionsFor(s.resource(guild.id,'role:manager')!)?.has(P.ManageThreads),true);
+   }
    if(key==='applications'){assert.equal(ch.name,'basvuru-takip');assert.equal(ch.permissionsFor(s.resource(guild.id,'role:finance')!)?.has(P.ViewChannel),true);assert.equal(ch.permissionsFor(s.resource(guild.id,'role:staff')!)?.has(P.ViewChannel),false);}
+   if(key==='finance')for(const id of ['pk:case','pk:book'])assert.ok(msg.components.some(row=>'components' in row&&row.components.some(button=>'customId' in button&&button.customId===id)));
   }
   const commands=await guild.commands.fetch({withLocalizations:false});const klinik=commands.find(x=>x.applicationId===c.app&&x.name==='klinik');assert.ok(klinik);
   for(const sub of ['ara','seanslar','uzlastir','teslim','tarife','saglik','bildirim','tekrar','personelim','personel-kaydi','personel-isleri','personel-kurtar'])assert.ok(klinik.options.some(x=>x.name===sub));
@@ -42,9 +46,19 @@ client.once(Events.ClientReady,async()=>{
     for(const id of members.keys())if(id!==user&&id!==c.app&&!c.owners.includes(id)){const member=await guild.members.fetch(id);assert.ok(member.roles.cache.has(s.resource(guild.id,'role:manager')!));}
     const key=`workspacemsg:${user}:${new Date(Date.now()+3*3600000).toISOString().slice(0,10)}`;const message=await thread.messages.fetch(s.resource(guild.id,key)!);assert.equal(message.author.id,c.app);assert.ok(message.embeds[0]?.image);assert.ok(message.components.length);workspaces++;
   }
+   let applications=0;
+   const appChannel=await textChannel(guild,s,'applications');
+   for(const row of s.all<{key:string;value:string}>("SELECT key,value FROM resources WHERE guild=? AND key LIKE 'appthread:%'",guild.id)) {
+    const thread=await guild.channels.fetch(row.value);assert.equal(thread?.type,ChannelType.PrivateThread);
+    if(thread?.type!==ChannelType.PrivateThread)continue;
+    const members=await thread.members.fetch();for(const owner of c.owners)assert.ok(members.has(owner),'Yonetim basvuru threadinde yok');
+    const id=Number(row.key.slice(10)),message=s.resource(guild.id,`appmsg:${id}`);
+    if(message){const card=await appChannel.messages.fetch(message);assert.match(card.embeds[0]?.description??'',/Not: \d+\/100/);assert.ok(card.embeds[0]?.description?.includes(`<#${thread.id}>`));}
+    applications++;
+   }
   assert.ok(workspaces>0,'Kurulum sahibinin personel alani olusmali.');
-  console.log(`Canli API kontrolu: ${panels} panel, ${icons} ozel ikon, 6 canli rol rengi, yeni komutlar, 6 rehber, ${workspaces} ozel personel alani ve rol izinleri dogrulandi.`);
-  console.log('Gercek aday/personel hesaplariyla buton ve ozel thread uyelik testi yapilmadi.');
+   console.log(`Canli API kontrolu: ${panels} panel, ${icons} ozel ikon, 6 canli rol rengi, 6 rehber, ${workspaces} personel alani ve ${applications} basvuru thread erisimi dogrulandi.`);
+   console.log('Gercek aday/personel hesaplariyla yeni basvuru ve randevu butonu testi yapilmadi.');
  }catch(e){console.error(`Canli kontrol basarisiz: ${e instanceof Error?e.name:'Error'}`);process.exitCode=1;}
  finally{clearTimeout(timeout);client.destroy();s.close();}
 });

@@ -39,7 +39,7 @@ export function staffPanel(s:Store,g:string) {
   ])};
 }
 export function financePanel(s:Store,g:string) {
-  return {...panelVisual('finance',card('Patrica | Finans','Bekleyen bildirimler kasaya dahil degildir. Onay vermeden once oyun ici para hareketini eslestir.')),components:buttons(s,g,[['summary','Kasa Ozeti','receipt'],['pending','Bekleyen Kayitlar','notes'],['expense','Gider Bildir','receipt'],['refund','Iade Talebi','receipt'],['export','Hesap Dokumu','folder']])};
+  return {...panelVisual('finance',card('Patrica | Finans ve IK','Danisan dosyasi ve randevu kaydi buradan acilir. Klinik notlari yalniz sorumlu psikolog gorur. Kasa kayitlarini oyun ici hareketle eslestir.')),components:buttons(s,g,[['case','Dosya Ac','folder'],['book','Randevu Ac','calendar'],['agenda','Randevular','calendar'],['summary','Kasa Ozeti','receipt'],['pending','Bekleyen Kayitlar','notes'],['expense','Gider Bildir','receipt'],['refund','Iade Talebi','receipt'],['export','Hesap Dokumu','folder']])};
 }
 export function applicationPanel(s:Store,g:string) {
   return {...panelVisual('apply',card('Patrica | Personel Basvurusu','Basvuracagin gorevi sec. Formdan sonra sana ozel sinav alani acilir. Her soruyu 60 saniyede cevapla; sure dolan soru yanlis sayilir. Basvurun ve sinav sonucun yonetim tarafindan incelenir.')),components:buttons(s,g,[['apply:psychologist','Psikolog Basvurusu'],['apply:reception','Resepsiyon Basvurusu'],['apply:finance','Finans ve IK Basvurusu'],['applicationstatus','Basvuru Durumum']])};
@@ -47,7 +47,7 @@ export function applicationPanel(s:Store,g:string) {
 export const forms: Record<string,{title:string;fields:Field[]}>={
   apply:{title:'Personel Basvurusu',fields:[{id:'name',label:'Karakter adi ve soyadi',max:32,placeholder:'Mira Patrica'},{id:'ic',label:'IC: iletisim, egitim ve is gecmisi',long:true,max:600},{id:'ooc',label:'OOC: RP deneyimi ve musaitlik',long:true,max:600},{id:'scenario',label:'Danisan gizliligi nasil korunur?',long:true,max:600}]},
   case:{title:'Danisan Dosyasi',fields:[{id:'name',label:'Karakter adi',max:80},{id:'contact',label:'Oyun ici iletisim',max:80},{id:'owner',label:'Sorumlu psikolog Discord ID',max:20}]},
-  book:{title:'Randevu Olustur',fields:[{id:'case',label:'Dosya kodu',placeholder:'PK-0001'},{id:'starts',label:'Istanbul tarihi ve saati',placeholder:'2026-11-02 21:30',max:16},{id:'minutes',label:'Sure: 20 / 30 / 45 / 60 dakika',max:2}]},
+  book:{title:'Randevu Olustur',fields:[{id:'case',label:'Dosya kodu',placeholder:'PK-0001'},{id:'starts',label:'Tarih ve saat (Istanbul)',placeholder:'2.11 21:30 veya yarin 21:30',max:20},{id:'minutes',label:'Sure: 20 / 30 / 45 / 60 dakika',max:2}]},
   visit:{title:'Gorusme Kaydi',fields:[{id:'case',label:'Dosya kodu',placeholder:'PK-0001'},{id:'service',label:'Hizmet: ilk / takip / cift',max:10},{id:'note',label:'Beyan, gozlem, hedef ve sonraki adim',long:true}]},
   income:{title:'Tahsilat Bildir',fields:[{id:'visit',label:'Seans kodu',placeholder:'SN-0001'},{id:'evidence',label:'Chatlog dosyasi veya ekran goruntusu',upload:true}]},
   expense:{title:'Gider Bildir',fields:[{id:'reference',label:'Gider aciklamasi',max:160},{id:'amount',label:'Oyun parasi: noktasiz tutar',max:8},{id:'evidence',label:'Gider kaniti',upload:true}]},

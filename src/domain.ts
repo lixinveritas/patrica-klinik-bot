@@ -39,9 +39,22 @@ export function proofHash(v: string) {
   return createHash('sha256').update(text(v, 20, 2000).replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim()).digest('hex');
 }
 export function localTime(v: string): number {
-  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) throw new UserError('Tarih: 2026-11-02 21:30 seklinde olmali (Istanbul).');
-  const n = Date.parse(v.replace(' ', 'T') + ':00+03:00');
-  if (!Number.isFinite(n) || new Date(n + 10_800_000).toISOString().slice(0,16).replace('T',' ') !== v) throw new UserError('Tarih veya saat gecersiz.');
+  const now = Date.now(), istanbul = new Date(now + 10_800_000);
+  const relative = /^(bugun|yarin)\s+(\d{1,2}):(\d{2})$/i.exec(v.trim());
+  const short = /^(\d{1,2})[.\/]\s*(\d{1,2})(?:[.\/]\s*(\d{4}))?\s+(\d{1,2}):(\d{2})$/.exec(v.trim());
+  let canonical = v.trim();
+  if (relative) {
+    const day = new Date(Date.UTC(istanbul.getUTCFullYear(),istanbul.getUTCMonth(),istanbul.getUTCDate()+(relative[1]!.toLowerCase()==='yarin'?1:0)));
+    canonical = `${day.toISOString().slice(0,10)} ${relative[2]!.padStart(2,'0')}:${relative[3]}`;
+  } else if (short) {
+    let year = short[3]?Number(short[3]):istanbul.getUTCFullYear();
+    const month = Number(short[2]), day = Number(short[1]), hour = Number(short[4]), minute = Number(short[5]);
+    if (!short[3] && Date.UTC(year,month-1,day,hour-3,minute)<now) year++;
+    canonical = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`;
+  }
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(canonical)) throw new UserError('Tarih icin 2.11 21:30 veya yarin 21:30 yaz (Istanbul saati).');
+  const n = Date.parse(canonical.replace(' ', 'T') + ':00+03:00');
+  if (!Number.isFinite(n) || new Date(n + 10_800_000).toISOString().slice(0,16).replace('T',' ') !== canonical) throw new UserError('Tarih veya saat gecersiz. Ornek: 2.11 21:30');
   return n;
 }
 export const formatMoney = (n: number) => `${n.toLocaleString('tr-TR')}$`;

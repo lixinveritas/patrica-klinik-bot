@@ -197,9 +197,11 @@ export class ClinicBot {
     const nameState=this.store.resource(guild.id,`nameapplied:${row.user}`);
     const set=questions[row.job as ApplicationJob],answers=this.store.applicationAnswers(guild.id,row.id);
     const score=set?Math.round(100*answers.filter(a=>set[a.question]?.correct===a.choice).length/set.length):0;
-    const wrong=set&&answers.length===set.length?answers.filter(a=>set[a.question]?.correct!==a.choice).map(a=>`S${a.question+1}: ${a.choice<0?'Sure doldu':visible(set[a.question]!.options[a.choice]!)} | Dogru: ${visible(set[a.question]!.options[set[a.question]!.correct]!)}`).join('\n'):'';
-    const exam=set?`\nSinav: ${answers.length}/${set.length}${answers.length===set.length?` | Not: ${score}/100\nYanlislar: ${wrong||'Yok'}`:''}`:'';
-    const payload={embeds:[card(`${code('BAS',row.id)} | ${row.state}`,`Karakter: ${visible(row.name)}\nDiscord ID: ${row.user}\nGorev: ${jobName[row.job as ApplicationJob]??row.job}${exam}\nYetki: ${row.state==='approved'?(this.store.resource(guild.id,`appapplied:${row.id}`)?'Uygulandi':'Atama bekliyor'):'Karar bekliyor'}${row.state==='approved'?`\nDiscord adi: ${nameState==='done'?'Guncellendi':nameState==='manual'?'Elle duzenlenmeli':'Bekliyor'}`:''}\n\n${visible(row.body)}`.slice(0,4000))],components:buttons(this.store,guild.id,[
+    const wrong=set?answers.filter(a=>set[a.question]?.correct!==a.choice).map(a=>`S${a.question+1}: ${a.choice<0?'Sure doldu':visible(set[a.question]!.options[a.choice]!)} | Dogru: ${visible(set[a.question]!.options[set[a.question]!.correct]!)}`).join('\n'):'';
+    const remaining=set?set.length-answers.length:0,closed=!['pending','interview'].includes(row.state);
+    const exam=set?`\nSinav: ${answers.length}/${set.length} | ${remaining&&!closed?'Gecici not':'Not'}: ${score}/100${remaining?` | ${remaining} bos soru`:''}\nYanlislar: ${wrong||'Yok'}${closed&&remaining?`\nCevaplanmayan: ${Array.from({length:remaining},(_,n)=>`S${answers.length+n+1}`).join(', ')}`:''}`:'';
+    const thread=this.store.resource(guild.id,`appthread:${row.id}`);
+    const payload={embeds:[card(`${code('BAS',row.id)} | ${row.state}`,`Karakter: ${visible(row.name)}\nDiscord ID: ${row.user}\nGorev: ${jobName[row.job as ApplicationJob]??row.job}${exam}${thread?`\nSinav alani: <#${thread}>`:''}\nYetki: ${row.state==='approved'?(this.store.resource(guild.id,`appapplied:${row.id}`)?'Uygulandi':'Atama bekliyor'):'Karar bekliyor'}${row.state==='approved'?`\nDiscord adi: ${nameState==='done'?'Guncellendi':nameState==='manual'?'Elle duzenlenmeli':'Bekliyor'}`:''}\n\n${visible(row.body)}`.slice(0,4000))],components:buttons(this.store,guild.id,[
       [`appinterview:${row.id}`,'Gorusmeye Cagir'],[`appapprove:${row.id}`,'Onayla'],[`appreject:${row.id}`,'Reddet']
     ]),allowedMentions:{parse:[] as []}};
     await deliver(this.store,guild.id,`appmsg:${row.id}`,channel,payload);
@@ -221,7 +223,16 @@ export class ClinicBot {
     if(thread.type!==ChannelType.PrivateThread||thread.parentId!==parent.id)throw new UserError('Basvuru thread eslesmiyor.');
     this.store.tx(()=>{this.store.setResource(guild.id,key,thread.id);this.store.run('DELETE FROM resources WHERE guild=? AND key=?',guild.id,`appthread-start:${row.id}`);});
     if(thread.archived)await thread.setArchived(false);if(thread.locked)await thread.setLocked(false);if(thread.invitable)await thread.setInvitable(false);
-    await thread.members.add(row.user);return thread;
+    await thread.members.add(row.user);
+    for(const owner of this.cfg.owners)await thread.members.add(owner);
+    return thread;
+  }
+  async syncApplicationOwners(guild:Guild) {
+    for(const row of this.store.all<{key:string;value:string}>("SELECT key,value FROM resources WHERE guild=? AND key LIKE 'appthread:%'",guild.id)) {
+      const thread=await guild.channels.fetch(row.value).catch(()=>null);
+      if(!thread||thread.type!==ChannelType.PrivateThread)continue;
+      for(const owner of this.cfg.owners)await thread.members.add(owner);
+    }
   }
   async publishApplicationQuestion(guild:Guild,row:Application) {
     const set=questions[row.job as ApplicationJob];if(!set)return;
@@ -269,7 +280,7 @@ export class ClinicBot {
             if(!arg){await i.reply({content:'Basvuracagin gorevi sec.',components:buttons(this.store,a.guild,[['apply:psychologist','Psikolog'],['apply:reception','Resepsiyon'],['apply:finance','Finans ve IK']]),flags:MessageFlags.Ephemeral});return;}
             if(!Object.hasOwn(questions,arg))throw new UserError('Gorev secimi gecersiz.');
           }
-          else if(action==='case'||action==='book')requireJob(a,'reception','psychologist');
+          else if(action==='case'||action==='book')requireJob(a,'reception','psychologist','finance');
           else if(action==='visit')requireJob(a,'psychologist');
           else if(action==='refund')requireJob(a,'finance');
           else requireJob(a,'finance','psychologist','reception');
@@ -293,7 +304,7 @@ export class ClinicBot {
         }
         if(action==='agenda') {
           requireJob(a,'psychologist','reception','finance');
-          const all=a.jobs.includes('manager')||a.jobs.includes('reception');
+          const all=a.jobs.includes('manager')||a.jobs.includes('reception')||a.jobs.includes('finance');
           const rows=this.store.all<Appointment>(`SELECT * FROM appointments WHERE guild=? AND state='scheduled' ${all?'':'AND staff=?'} ORDER BY starts LIMIT 20`,...all?[a.guild]:[a.guild,a.id]);
           await i.editReply(rows.map(r=>`${code('RD',r.id)} | ${code('PK',r.case_id)} | ${formatTime(r.starts)}`).join('\n')||'Bekleyen randevu yok.');return;
         }
@@ -324,7 +335,7 @@ export class ClinicBot {
         }
         const state=act==='appapprove'?'approved':act==='appreject'?'rejected':act==='appinterview'?'interview':null;
         if(!state)throw new UserError('Karar gecersiz.');
-        const row=this.store.application(a.guild,id);
+        const row=this.store.application(a.guild,id),changed=row.state!==state;
         await this.exclusive(`member:${row.user}`,async()=>{
           const decided=this.store.decideApplication(a,id,state,reason);
           if(state==='approved'&&!this.store.resource(a.guild,`appapplied:${id}`)) {
@@ -334,7 +345,14 @@ export class ClinicBot {
           await this.publishApplication(i.guild!,decided);
         });
         let notified=true;
-        try{const user=await this.client.users.fetch(row.user);await user.send({content:`Patrica Klinik | ${code('BAS',id)}\nDurum: ${state}\n${visible(text(reason,3,300))}`,allowedMentions:{parse:[]}});}catch{notified=false;}
+        if(changed)try{
+          const user=await this.client.users.fetch(row.user);
+          const title=state==='approved'?'Basvurun kabul edildi':state==='interview'?'Gorusmeye davetlisin':'Basvurun bu kez kabul edilmedi';
+          const detail=state==='approved'?'Ekibe hos geldin. Sonraki adimlari yonetim seninle paylasacak.':state==='interview'?'Yonetim seninle gorusmek istiyor. Gorusme zamani icin haber bekle.':'Basvurunu inceledik. Baska bir donem yeniden basvurabilirsin.';
+          const set=questions[row.job as ApplicationJob],answers=this.store.applicationAnswers(a.guild,id);
+          const score=set?Math.round(100*answers.filter(x=>set[x.question]?.correct===x.choice).length/set.length):0;
+          await user.send({embeds:[card(title,`${detail}\n\n${code('BAS',id)} | ${jobName[row.job as ApplicationJob]??row.job}${set?`\nSinav: ${score}/100 (${answers.length}/${set.length} soru cevaplandi)`:''}`).addFields({name:'Yonetim notu',value:visible(text(reason,3,300))})],allowedMentions:{parse:[]}});
+        }catch{notified=false;}
         await i.editReply(`Basvuru ${state}.${state==='approved'&&this.store.resource(a.guild,`nameapplied:${row.user}`)==='manual'?' Discord adini elle karakter adina cevir.':''}${notified?'':' Ozel mesaj kapali; adaya ulasilamadi.'}`);return;
       }
       if(action!=='form'||!arg)throw new UserError('Form taninmiyor.');
@@ -344,6 +362,7 @@ export class ClinicBot {
         const row=this.store.apply(a,get('name'),mapped,`IC: ${get('ic')}\nOOC: ${get('ooc')}\nSenaryo: ${get('scenario')}`,i.id);
         const sent=await this.publishApplication(i.guild,row).then(()=>true,()=>false);
         const thread=await this.publishApplicationQuestion(i.guild,row).then(()=>this.store.resource(a.guild,`appthread:${row.id}`),()=>undefined);
+        if(thread)await this.publishApplication(i.guild,row).catch(()=>{});
         await i.editReply(`${code('BAS',row.id)} basvurun kaydedildi.${thread?` Sinav alani: <#${thread}>`:' Sinav alani acilamadi; tekrar basvurma, yonetime BAS kodunu bildir.'}${sent?'':' Yonetim karti gecikti; tekrar basvurma.'}`);return;
       }
       if(arg==='case') {
