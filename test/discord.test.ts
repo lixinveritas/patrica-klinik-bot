@@ -56,6 +56,18 @@ test('onayli karakter adi Discord takma adina uygulanir; yetki yoksa manuel duru
   assert.equal(await bot.syncCharacterName(guild,uid),false);assert.equal(nickname,'Mira Patrica');assert.equal(s.resource(gid,`nameapplied:${uid}`),'manual');
  }finally{s.close();}
 });
+test('gorev butonundan basvuru kaydedilir ve yonetim karti tek kez gonderilir',async()=>{
+ const {s,guild,bot}=fixture();try{
+  const sent:any[]=[];const channel={id:'333333333333333333',type:ChannelType.GuildText,send:async(payload:any)=>{sent.push(payload);return {id:'444444444444444444'};}};
+  s.setResource(gid,'channel:applications',channel.id);Object.assign(guild,{channels:{fetch:async()=>channel},members:{fetch:async()=>({roles:{cache:new Collection()}})}});
+  const open=interaction(guild,'button','apply:psychologist');Object.assign(open.i,{member:{roles:[]}});await bot.handle(open.i);
+  const form=open.replies[0] as {toJSON:()=>any};assert.equal(form.toJSON().custom_id,'pk:form:apply:psychologist');assert.equal(form.toJSON().components.length,4);
+  const submit=interaction(guild,'modal','form:apply:psychologist',{name:'Asuka Shindo',ic:'Klinikte calisma gecmisi ve iletisim bilgisi.',ooc:'Duzenli RP deneyimi ve uygun saatler.',scenario:'Danisan notlari sadece yetkili dosyada kalir.'});Object.assign(submit.i,{member:{roles:[]}});await bot.handle(submit.i);
+  assert.equal(s.all('SELECT id FROM applications').length,1);assert.equal(s.application(gid,1).job,'psychologist');assert.equal(sent.length,1);
+  assert.equal(s.resource(gid,'appmsg:1'),'444444444444444444');assert.match(String(submit.replies[0]),/BAS-0001 basvurun kaydedildi/);
+  const reception=interaction(guild,'button','apply:reception');Object.assign(reception.i,{member:{roles:[]}});await bot.handle(reception.i);assert.equal((reception.replies[0] as {toJSON:()=>any}).toJSON().custom_id,'pk:form:apply:reception');
+ }finally{s.close();}
+});
 function interaction(guild:Guild,kind:'button'|'modal',id:string,fields:Record<string,string>={}) {
  const replies:unknown[]=[];
  const i={id:'123456789123456789',guild,guildId:gid,user:{id:uid},member:{roles:['400000000000000002']},customId:`pk:${id}`,deferred:false,replied:false,

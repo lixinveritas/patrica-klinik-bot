@@ -33,7 +33,7 @@ Yeni gelenin ilk gordugu yer. Personel basvurusu icin nereye gidecegini anlatir.
 Gizlilik, calisma esaslari ve ucretler. Danisan bilgisi kimle paylasilabilir, hangi hizmet kac para: once buraya bak.
 
 **${ch('apply','personel-basvurusu')}**
-Henuz personel olmayan kisi **Basvuru Yap** butonunu kullanir. Oynadigin karakterin adini ve soyadini, istedigin gorevi, IC ve OOC bilgiyi ayri yaz. Onaylaninca karakter adi personel dosyana kaydedilir; botun Discord yetkisi varsa sunucudaki gorunen adin da guncellenir. Bu buton danisan kaydi acmaz. Gorev degisikligi icin yeniden basvurma; yonetime yaz.
+Henuz personel olmayan kisi **Psikolog Basvurusu** veya **Resepsiyon Basvurusu** butonunu secer. Formda gorev yazilmaz; karakterin adini ve soyadini, IC ve OOC bilgiyi ayri yaz. Basarili gonderimde BAS kodu gorunur ve yonetim kanalina kart duser. BAS kodu yoksa basvuru kaydedilmemistir; hatayi duzeltip yeniden gonder. Onaylaninca karakter adi personel dosyana kaydedilir; botun Discord yetkisi varsa sunucudaki gorunen adin da guncellenir. Gorev degisikligi icin yeniden basvurma; yonetime yaz.
 
 **${ch('announcements','kurum-duyurulari')}**
 Yonetimin resmi duyurulari. Vardiya, tarife veya calisma duzeni degisirse burada aciklanir.

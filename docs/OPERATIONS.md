@@ -4,6 +4,12 @@
 
 ### Karakter adi ve Discord hesabi
 
+Basvuru kanalinda **Psikolog Basvurusu** veya **Resepsiyon Basvurusu** butonu
+secilir. Gorev forma yazilmaz. Basarili gonderimde aday BAS kodunu gorur ve yonetim
+kanalina bir basvuru karti gider. BAS kodu gorunmuyorsa kayit olusmamistir;
+yonetim kanalinda da kart beklenmez. Bu durumda formdaki hatayi duzeltip yeniden
+gondermek gerekir.
+
 Basvuruda karakterin ad ve soyadi yazilir. Onay karari bu adi ayni Discord
 kullanici ID'sine baglar; gorev rolu yetkiyi belirler. Bot takma adi
 degistirebiliyorsa sunucudaki gorunen adi da uygular. Sunucu sahibi veya botun

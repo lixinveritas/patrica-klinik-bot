@@ -73,7 +73,7 @@ test('interaction acknowledges before fresh member lookup, modal opens without l
  const g={id:guild,members:{fetch:async()=>{fetches++;assert.ok(ack);return {roles:{cache:new Map()}};}}} as unknown as Guild;
  const bot=new ClinicBot({} as Client,s,{guild,app:'777777777777777777',owners:[],data:'unused',token:'unused'});
  const i={id:'123',guild:g,guildId:guild,user:{id:owner},member:{roles:[]},deferred:false,replied:false,customId:'pk:applicationstatus',isChatInputCommand:()=>false,isButton:()=>true,isModalSubmit:()=>false,deferReply:async()=>{ack=true;i.deferred=true;},editReply:async()=>{},reply:async()=>{},showModal:async()=>{ack=true;}};
- try{await bot.handle(i as unknown as Interaction);assert.ok(ack);assert.equal(fetches,1);ack=false;i.customId='pk:apply';i.deferred=false;await bot.handle(i as unknown as Interaction);assert.ok(ack);assert.equal(fetches,1);}finally{s.close();}
+ try{await bot.handle(i as unknown as Interaction);assert.ok(ack);assert.equal(fetches,1);ack=false;i.customId='pk:apply:psychologist';i.deferred=false;await bot.handle(i as unknown as Interaction);assert.ok(ack);assert.equal(fetches,1);}finally{s.close();}
 });
 test('old schema backup restores and new optional tables migrate on open',async()=>{
  const dir=mkdtempSync(join(tmpdir(),'patrica-old-'));const s=new Store(join(dir,'old.sqlite'));

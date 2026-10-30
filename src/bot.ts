@@ -211,7 +211,7 @@ export class ClinicBot {
       if(i.isChatInputCommand()) {
         await this.command(i,a);return;
       }
-      const [action,arg]=i.customId.slice(3).split(':');if(!action)throw new UserError('Islem gecersiz.');
+      const [action,arg,choice]=i.customId.slice(3).split(':');if(!action)throw new UserError('Islem gecersiz.');
       if(i.isButton()) {
         if(action==='setup') {
           if(!this.cfg.owners.includes(a.id))throw new UserError('Kurulum yalniz bot sahibine acik.');
@@ -220,12 +220,16 @@ export class ClinicBot {
         }
         if(action==='personal') {const thread=await this.exclusive(`workspace:${a.id}`,()=>this.personnel.ensure(i.guild!,a.id));this.personnel.schedule(a.guild,a.id);await i.editReply(`Kisisel dosyan: <#${thread.id}>`);return;}
         if(forms[action]) {
-          if(action==='apply'){if(a.jobs.length)throw new UserError('Zaten personelsin.');}
+          if(action==='apply'){
+            if(a.jobs.length)throw new UserError('Zaten personelsin.');
+            if(!arg){await i.reply({content:'Basvuracagin gorevi sec.',components:buttons(this.store,a.guild,[['apply:psychologist','Psikolog'],['apply:reception','Resepsiyon']]),flags:MessageFlags.Ephemeral});return;}
+            if(!['psychologist','reception'].includes(arg))throw new UserError('Gorev secimi gecersiz.');
+          }
           else if(action==='case'||action==='book')requireJob(a,'reception','psychologist');
           else if(action==='visit')requireJob(a,'psychologist');
           else if(action==='refund')requireJob(a,'finance');
           else requireJob(a,'finance','psychologist','reception');
-          const form=forms[action]!;await i.showModal(modal(`form:${action}`,form.title,form.fields));return;
+          const form=forms[action]!;await i.showModal(modal(action==='apply'?'form:apply:'+arg:'form:'+action,action==='apply'?(arg==='psychologist'?'Psikolog Basvurusu':'Resepsiyon Basvurusu'):form.title,form.fields));return;
         }
         if(action.startsWith('cashapprove')||action.startsWith('cashreject')||action.startsWith('appapprove')||action.startsWith('appreject')||action.startsWith('appinterview')) {
           if(action.startsWith('cash'))requireJob(a,'finance');else requireJob(a,'manager');
@@ -239,7 +243,7 @@ export class ClinicBot {
         }
         if(action==='applicationstatus') {
           const row=this.store.get<Application>('SELECT * FROM applications WHERE guild=? AND user=? ORDER BY id DESC LIMIT 1',a.guild,a.id);
-          await i.editReply(row?`${code('BAS',row.id)}: ${row.state}`:'Henuz basvurun yok.');return;
+          await i.editReply(row?`${code('BAS',row.id)}: ${row.state}`:'Henuz kaydedilmis basvurun yok. Psikolog veya Resepsiyon Basvurusu butonunu kullan.');return;
         }
         if(action==='agenda') {
           requireJob(a,'psychologist','reception','finance');
@@ -289,7 +293,8 @@ export class ClinicBot {
       }
       if(action!=='form'||!arg)throw new UserError('Form taninmiyor.');
       if(arg==='apply') {
-        const job=get('job').trim().toLowerCase();const mapped=job==='psikolog'?'psychologist':job==='resepsiyon'?'reception':job;
+        const job=choice??get('job').trim().toLowerCase();const mapped=job==='psikolog'?'psychologist':job==='resepsiyon'?'reception':job;
+        if(!['psychologist','reception'].includes(mapped))throw new UserError('Gorev secimi gecersiz. Basvuru kanalindaki Psikolog veya Resepsiyon butonunu kullan.');
         const row=this.store.apply(a,get('name'),mapped,`IC: ${get('ic')}\nOOC: ${get('ooc')}\nSenaryo: ${get('scenario')}`,i.id);
         const sent=await this.publishApplication(i.guild,row).then(()=>true,()=>false);
         await i.editReply(`${code('BAS',row.id)} basvurun kaydedildi.${sent?'':' Yonetim paneline bildirim gidemedi; tekrar basvurma.'}`);return;
