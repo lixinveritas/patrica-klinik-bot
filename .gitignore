@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.env
+data/
+backups/
+*.log
+.env.*
+!.env.example
+*.sqlite*
+*.db
+*.pid
+*.lock
+!package-lock.json
+*.tmp
+coverage/
+DURUM.md
+scripts/upgrade-source.mjs

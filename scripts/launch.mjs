@@ -1,0 +1,11 @@
+import { openSync, closeSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+const cwd=fileURLToPath(new URL('../',import.meta.url));
+mkdirSync(new URL('../data/',import.meta.url),{recursive:true});
+if(existsSync(new URL('../data/bot.lock',import.meta.url)))throw new Error('Bot kilidi var; ikinci kopya baslatilmadi.');
+const log=openSync(new URL('../data/runtime.log',import.meta.url),'a');
+if(existsSync(new URL('../data/supervisor.lock',import.meta.url)))throw new Error('Gozetim kilidi var; ikinci kopya baslatilmadi.');
+const child=spawn(process.execPath,['scripts/supervise.mjs'],{cwd,detached:true,windowsHide:true,stdio:['ignore',log,log]});
+child.unref();closeSync(log);writeFileSync(new URL('../data/supervisor.pid',import.meta.url),String(child.pid));
+console.log(`Bot arka planda baslatildi. PID ${child.pid}`);

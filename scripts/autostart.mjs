@@ -1,0 +1,10 @@
+import {mkdirSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+if(process.platform!=='win32'||!process.env.APPDATA)throw new Error('Bu kurulum Windows icindir.');
+const root=fileURLToPath(new URL('../',import.meta.url));
+const startup=resolve(process.env.APPDATA,'Microsoft/Windows/Start Menu/Programs/Startup');mkdirSync(startup,{recursive:true});
+const quote=s=>s.replaceAll('"','""');
+const body=`Set shell = CreateObject("WScript.Shell")\r\nshell.CurrentDirectory = "${quote(root)}"\r\nshell.Run """${quote(process.execPath)}"" scripts/launch.mjs", 0, False\r\n`;
+writeFileSync(resolve(startup,'Patrica Klinik.vbs'),body,'utf8');
+console.log('Patrica icin Windows oturum acilisinda gizli baslatma kaydedildi.');

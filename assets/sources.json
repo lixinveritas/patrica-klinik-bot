@@ -1,0 +1,32 @@
+{
+  "source": "https://github.com/lucide-icons/lucide",
+  "commit": "81875c8c42d2320fa5123b37fee3554f4ca2bddc",
+  "license": "ISC + retained Feather notices",
+  "icons": [
+    {
+      "name": "folder",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/81875c8c42d2320fa5123b37fee3554f4ca2bddc/icons/folder-open.svg",
+      "sha256": "ee57452b40e71df310214091dd9da1941a397c83197b8ff8d7ae66dd4242578b"
+    },
+    {
+      "name": "calendar",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/81875c8c42d2320fa5123b37fee3554f4ca2bddc/icons/calendar-days.svg",
+      "sha256": "9330eb8d7c4989e97b6361314abbf02953243c602874725c9e58ceca00da3bd7"
+    },
+    {
+      "name": "notes",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/81875c8c42d2320fa5123b37fee3554f4ca2bddc/icons/clipboard-list.svg",
+      "sha256": "2b91abc2e8ee8ba4c2e0f77d506a47a7a9774b0d4de3fa4b27e822a6376ab892"
+    },
+    {
+      "name": "receipt",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/81875c8c42d2320fa5123b37fee3554f4ca2bddc/icons/receipt-text.svg",
+      "sha256": "35b44cd6ce443dc58119380750d6bc12b6dbead1cac23e7ac3dc578d52795bf4"
+    },
+    {
+      "name": "clock",
+      "url": "https://raw.githubusercontent.com/lucide-icons/lucide/81875c8c42d2320fa5123b37fee3554f4ca2bddc/icons/clock-3.svg",
+      "sha256": "0e097d0b66278965fb53bc14900575d95f5c21b9cca932028bbb33294b56c9e2"
+    }
+  ]
+}

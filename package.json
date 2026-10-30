@@ -1,0 +1,33 @@
+{
+  "name": "patrica-klinik-bot",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.14.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test dist/test/*.test.js",
+    "start": "node --env-file=.env dist/src/main.js",
+    "register": "node --env-file=.env dist/src/register.js",
+    "provision": "node --env-file=.env dist/src/provision.js",
+    "verify:live": "node --env-file=.env dist/src/verify-live.js",
+    "doctor": "node dist/src/doctor.js",
+    "assets": "node scripts/assets.mjs",
+    "backup": "node --env-file=.env dist/src/backup.js",
+    "restore": "node dist/src/restore.js",
+    "start:background": "node scripts/launch.mjs",
+    "restart": "node scripts/restart.mjs",
+    "autostart:install": "node scripts/autostart.mjs",
+    "publish:check": "node --env-file-if-exists=.env scripts/publish-check.mjs"
+  },
+  "dependencies": {
+    "discord.js": "14.27.0",
+    "sharp": "0.35.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "typescript": "5.9.3"
+  }
+}
